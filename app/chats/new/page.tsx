@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { ArrowLeft, Search } from "lucide-react"
+import { ArrowLeft, Search, Users } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
@@ -70,6 +70,18 @@ export default function NewChatPage() {
             className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
+      </div>
+
+      <div className="px-2 pt-3">
+        <Link
+          href="/chats/new-group"
+          className="flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors hover:bg-muted/60"
+        >
+          <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Users className="size-5" />
+          </span>
+          <span className="font-semibold text-foreground">New group</span>
+        </Link>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-3">

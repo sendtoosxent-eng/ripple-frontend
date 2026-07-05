@@ -35,6 +35,7 @@ type ApiConversation = {
   name: string | null
   is_group: boolean
   avatar: string | null
+  avatar_url: string | null
   members: ApiUser[]
   messages?: ApiMessage[]
   latestMessage?: ApiMessage | null
@@ -63,6 +64,8 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
     from: (m.sender_id === myId ? "me" : "them") as "me" | "them",
     time: fmtTime(m.created_at),
     status: m.status,
+    senderName: m.sender?.name,
+    senderAvatar: m.sender?.avatar_url || undefined,
   }
 
   if (m.type === "image") {
@@ -78,7 +81,7 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
 export function toUiConversation(c: ApiConversation, myId: number): Conversation {
   const otherMember = !c.is_group ? c.members.find((m) => m.id !== myId) : null
   const displayName = c.is_group ? c.name || "Group chat" : otherMember?.name || "Unknown"
-  const displayAvatar = c.is_group ? c.avatar || "/avatars/group-weekend.png" : otherMember?.avatar_url || "/avatars/you.png"
+  const displayAvatar = c.is_group ? c.avatar_url || "/avatars/group-weekend.png" : otherMember?.avatar_url || "/avatars/you.png"
 
   const latest = c.latestMessage
   const lastMessage = latest

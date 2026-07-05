@@ -38,7 +38,7 @@ export function Footer() {
         <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
           © {new Date().getFullYear()} Ripple • Made with
           <Heart className="h-3 w-3 fill-red-500 text-red-500" />
-          osxent
+          by osxent
         </p>
       </div>
     </footer>

@@ -13,6 +13,8 @@ export type MessageBase = {
   from: "me" | "them"
   time: string
   status?: "sent" | "delivered" | "read"
+  senderName?: string
+  senderAvatar?: string
 }
 
 export type TextMessage = MessageBase & { type: "text"; text: string }

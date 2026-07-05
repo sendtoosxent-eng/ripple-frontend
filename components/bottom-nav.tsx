@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { MessageCircle, Settings, UserRound } from "lucide-react"
+import { MessageCircle, Settings, UserRound, CircleDashed } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const items = [
   { href: "/chats", label: "Chats", icon: MessageCircle },
+  { href: "/status", label: "Updates", icon: CircleDashed },
   { href: "/profile", label: "Profile", icon: UserRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ]

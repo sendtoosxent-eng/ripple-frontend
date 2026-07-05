@@ -72,6 +72,26 @@ export const api = {
 
   markConversationRead: (id: string) => request(`/conversations/${id}/read`, { method: "POST" }),
 
+  toggleMute: (id: string) => request(`/conversations/${id}/mute`, { method: "PATCH" }),
+
+  leaveConversation: (id: string) => request(`/conversations/${id}/leave`, { method: "POST" }),
+
+  getStatuses: () => request("/statuses"),
+
+  postTextStatus: (text: string, background: string) =>
+    request("/statuses", { method: "POST", body: JSON.stringify({ type: "text", text, background }) }),
+
+  postImageStatus: (file: File) => {
+    const form = new FormData()
+    form.append("type", "image")
+    form.append("image", file)
+    return request("/statuses", { method: "POST", body: form })
+  },
+
+  markStatusViewed: (id: number) => request(`/statuses/${id}/view`, { method: "POST" }),
+
+  deleteStatus: (id: number) => request(`/statuses/${id}`, { method: "DELETE" }),
+
   updateProfile: (
     data: { name?: string; username?: string; bio?: string; status?: string },
     avatar?: File | null,
@@ -87,8 +107,17 @@ export const api = {
     return request("/me", { method: "POST", body: form })
   },
 
-  createConversation: (data: { member_ids: number[]; is_group?: boolean; name?: string }) =>
-    request("/conversations", { method: "POST", body: JSON.stringify(data) }),
+  createConversation: (data: { member_ids: number[]; is_group?: boolean; name?: string }, avatar?: File | null) => {
+    if (avatar) {
+      const form = new FormData()
+      data.member_ids.forEach((id) => form.append("member_ids[]", String(id)))
+      if (data.is_group !== undefined) form.append("is_group", data.is_group ? "1" : "0")
+      if (data.name) form.append("name", data.name)
+      form.append("avatar", avatar)
+      return request("/conversations", { method: "POST", body: form })
+    }
+    return request("/conversations", { method: "POST", body: JSON.stringify(data) })
+  },
 
   sendTextMessage: (conversationId: string, text: string) =>
     request(`/conversations/${conversationId}/messages`, {

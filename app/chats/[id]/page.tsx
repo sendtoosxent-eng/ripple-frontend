@@ -31,13 +31,14 @@ export default function ChatRoomPage() {
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
-  const [otherTyping, setOtherTyping] = useState(false)
+  const [typingUsers, setTypingUsers] = useState<Record<number, string>>({})
+  const otherTyping = Object.keys(typingUsers).length > 0
   const [otherRecording, setOtherRecording] = useState(false)
   const [wallpaperClass, setWallpaperClass] = useState(getWallpaperClassName("default"))
   const scrollRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const channelRef = useRef<any>(null)
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const typingTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function ChatRoomPage() {
 
     channel.listen(".message.sent", (e: { message: any }) => {
       setMessages((m) => [...m, toUiMessage(e.message, user.id)])
-      setOtherTyping(false)
+      setTypingUsers({})
       setOtherRecording(false)
       if (e.message.sender_id !== user.id) playNotificationSound()
       // I'm actively viewing this chat, so mark it read immediately
@@ -85,11 +86,17 @@ export default function ChatRoomPage() {
       setMessages((m) => m.map((msg) => (msg.from === "me" ? { ...msg, status: "read" } : msg)))
     })
 
-    channel.listenForWhisper("typing", (e: { userId: number }) => {
+    channel.listenForWhisper("typing", (e: { userId: number; name: string }) => {
       if (e.userId === user.id) return
-      setOtherTyping(true)
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-      typingTimeoutRef.current = setTimeout(() => setOtherTyping(false), 3000)
+      setTypingUsers((prev) => ({ ...prev, [e.userId]: e.name }))
+      if (typingTimeoutRef.current[e.userId]) clearTimeout(typingTimeoutRef.current[e.userId])
+      typingTimeoutRef.current[e.userId] = setTimeout(() => {
+        setTypingUsers((prev) => {
+          const next = { ...prev }
+          delete next[e.userId]
+          return next
+        })
+      }, 3000)
     })
 
     channel.listenForWhisper("recording", (e: { userId: number; active: boolean }) => {
@@ -110,7 +117,7 @@ export default function ChatRoomPage() {
   if (authLoading || !user || !conversation) return null
 
   function notifyTyping() {
-    channelRef.current?.whisper("typing", { userId: user!.id })
+    channelRef.current?.whisper("typing", { userId: user!.id, name: user!.name.split(" ")[0] })
   }
 
   function notifyRecording(active: boolean) {
@@ -149,12 +156,24 @@ export default function ChatRoomPage() {
     e.target.value = ""
   }
 
+  const typingNames = Object.values(typingUsers)
+  const typingLine =
+    typingNames.length === 0
+      ? ""
+      : typingNames.length === 1
+        ? `${typingNames[0]} is typing...`
+        : typingNames.length === 2
+          ? `${typingNames[0]} and ${typingNames[1]} are typing...`
+          : `${typingNames.length} people are typing...`
+
+  const onlineCount = conversation.members?.filter((m) => m.online).length ?? 0
+
   const statusLine = otherRecording
     ? "Recording a voice message..."
     : otherTyping
-      ? "Typing..."
+      ? typingLine
       : conversation.isGroup
-        ? `${conversation.members?.length ?? 0} members`
+        ? `${conversation.members?.length ?? 0} members${onlineCount > 0 ? ` · ${onlineCount} online` : ""}`
         : conversation.online
           ? "Online"
           : "Last seen recently"
@@ -226,7 +245,7 @@ export default function ChatRoomPage() {
           </span>
         </div>
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} onExpandImage={setLightbox} />
+          <MessageBubble key={m.id} message={m} onExpandImage={setLightbox} isGroup={conversation.isGroup} />
         ))}
         {otherTyping && (
           <div className="flex justify-start">

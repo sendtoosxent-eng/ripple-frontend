@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell"
 import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/lib/auth-context"
+import { Footer } from "@/components/footer"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -142,6 +143,9 @@ export default function LoginPage() {
           Sign up
         </Link>
       </p>
+      <div>
+         <Footer />
+      </div>
     </AppShell>
   )
 }

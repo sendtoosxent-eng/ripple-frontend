@@ -6,6 +6,7 @@ import { useRef, useState } from "react"
 import { ArrowLeft, AtSign, Camera, Eye, EyeOff, Lock, Mail, User } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { useAuth } from "@/lib/auth-context"
+import { Footer } from "@/components/footer"
 
 function Field({
   label,
@@ -198,6 +199,10 @@ export default function RegisterPage() {
           </Link>
         </p>
       </form>
+
+            <div>
+               <Footer />
+            </div>
     </AppShell>
   )
 }

@@ -2,6 +2,7 @@
 
 import { Check, CheckCheck } from "lucide-react"
 import { VoiceNote } from "@/components/chat/voice-note"
+import { UserAvatar } from "@/components/user-avatar"
 import type { Message } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
@@ -17,14 +18,20 @@ function Ticks({ status }: { status?: string }) {
 export function MessageBubble({
   message,
   onExpandImage,
+  isGroup,
 }: {
   message: Message
   onExpandImage?: (src: string) => void
+  isGroup?: boolean
 }) {
   const mine = message.from === "me"
+  const showSender = isGroup && !mine
 
   return (
-    <div className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
+      {showSender && (
+        <UserAvatar src={message.senderAvatar || "/avatars/you.png"} name={message.senderName || "?"} size="sm" className="mb-0.5 shrink-0" />
+      )}
       <div
         className={cn(
           "max-w-[78%] shadow-sm",
@@ -34,6 +41,10 @@ export function MessageBubble({
             : "bg-bubble-received text-bubble-received-foreground rounded-bl-md",
         )}
       >
+        {showSender && (
+          <p className="px-0.5 pb-0.5 text-xs font-semibold text-primary">{message.senderName}</p>
+        )}
+
         {message.type === "text" && (
           <p className="text-pretty text-[0.95rem] leading-relaxed">{message.text}</p>
         )}
