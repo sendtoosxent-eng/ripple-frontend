@@ -92,9 +92,6 @@ export const api = {
 
   deleteStatus: (id: number) => request(`/statuses/${id}`, { method: "DELETE" }),
 
-  replyToStatus: (statusId: number, text: string) =>
-    request(`/statuses/${statusId}/reply`, { method: "POST", body: JSON.stringify({ text }) }),
-
   // Friends
   getFriendRequests: () => request("/friend-requests"),
   sendFriendRequest: (receiverId: number) =>
@@ -118,21 +115,6 @@ export const api = {
   // Message reactions
   reactToMessage: (messageId: number, emoji: string) =>
     request(`/messages/${messageId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
-
-  // Account
-  deleteAccount: () => request("/me", { method: "DELETE" }),
-  blockUser: (userId: number | string) => request(`/users/${userId}/block`, { method: "POST" }),
-  unblockUser: (userId: number | string) => request(`/users/${userId}/unblock`, { method: "POST" }),
-
-  // Post comments & reposts
-  getPostComments: (postId: number) => request(`/posts/${postId}/comments`),
-  addPostComment: (postId: number, text: string) =>
-    request(`/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ text }) }),
-  togglePostRepost: (postId: number) => request(`/posts/${postId}/repost`, { method: "POST" }),
-
-  // Notifications
-  getNotifications: () => request("/notifications"),
-  getUnreadNotificationCount: () => request("/notifications/unread-count"),
 
   updateProfile: (
     data: { name?: string; username?: string; bio?: string; status?: string },
