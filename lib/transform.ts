@@ -29,6 +29,7 @@ type ApiMessage = {
   created_at: string
   sender: ApiUser
   reply_preview?: { id: number; sender_name: string; preview: string } | null
+  status_reply_preview?: { id: number; type: "text" | "image"; text: string | null; media_url: string | null; background: string | null } | null
   reaction_summary?: { emoji: string; count: number; user_ids: number[] }[]
 }
 
@@ -70,6 +71,15 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
     senderAvatar: m.sender?.avatar_url || undefined,
     replyPreview: m.reply_preview
       ? { id: String(m.reply_preview.id), senderName: m.reply_preview.sender_name, preview: m.reply_preview.preview }
+      : null,
+    statusReplyPreview: m.status_reply_preview
+      ? {
+          id: String(m.status_reply_preview.id),
+          type: m.status_reply_preview.type,
+          text: m.status_reply_preview.text,
+          mediaUrl: m.status_reply_preview.media_url,
+          background: m.status_reply_preview.background,
+        }
       : null,
     reactions: (m.reaction_summary || []).map((r) => ({ emoji: r.emoji, count: r.count, userIds: r.user_ids })),
   }
