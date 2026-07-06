@@ -16,6 +16,7 @@ export type MessageBase = {
   senderName?: string
   senderAvatar?: string
   replyPreview?: { id: string; senderName: string; preview: string } | null
+  statusReplyPreview?: { id: string; type: "text" | "image"; text: string | null; mediaUrl: string | null; background: string | null } | null
   reactions?: { emoji: string; count: number; userIds: number[] }[]
 }
 

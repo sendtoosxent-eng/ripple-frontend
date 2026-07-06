@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { Trash2, X } from "lucide-react"
+import { Send, Trash2, X } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -24,6 +24,7 @@ type StatusGroup = {
 }
 
 const DURATION = 5000 // ms per status
+const QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"]
 
 export default function StatusViewerPage() {
   const params = useParams<{ userId: string }>()
@@ -33,6 +34,9 @@ export default function StatusViewerPage() {
   const [index, setIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [replyText, setReplyText] = useState("")
+  const [sending, setSending] = useState(false)
+  const [sentFlash, setSentFlash] = useState(false)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef<number>(0)
   const elapsedRef = useRef<number>(0)
@@ -113,6 +117,20 @@ export default function StatusViewerPage() {
     }
   }
 
+  async function sendReply(text: string) {
+    if (!current || !text.trim() || sending) return
+    setSending(true)
+    setPaused(false)
+    try {
+      await api.replyToStatus(current.id, text.trim())
+      setReplyText("")
+      setSentFlash(true)
+      setTimeout(() => setSentFlash(false), 1500)
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (authLoading || !me || !group || !current) return null
 
   return (
@@ -173,10 +191,55 @@ export default function StatusViewerPage() {
           </div>
         )}
 
-        {/* Tap zones for prev/next */}
+        {sentFlash && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-4 py-1.5 text-sm font-medium text-black">
+            Sent ✓
+          </div>
+        )}
+
+        {/* Tap zones for prev/next — only over the top 80% so they don't block the reply bar below */}
         <button aria-label="Previous" onClick={goPrev} className="absolute inset-y-0 left-0 w-1/3" />
         <button aria-label="Next" onClick={goNext} className="absolute inset-y-0 right-0 w-1/3" />
       </div>
+
+      {/* Reply / react bar — only for friends' statuses, not your own */}
+      {!isMine && (
+        <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mb-2 flex justify-center gap-3">
+            {QUICK_REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => sendReply(emoji)}
+                disabled={sending}
+                className="text-2xl transition-transform active:scale-90 disabled:opacity-50"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2.5 backdrop-blur">
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onFocus={() => setPaused(true)}
+              onBlur={() => setPaused(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") sendReply(replyText)
+              }}
+              placeholder={`Reply to ${group.user.name.split(" ")[0]}...`}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/60"
+            />
+            <button
+              onClick={() => sendReply(replyText)}
+              disabled={!replyText.trim() || sending}
+              aria-label="Send reply"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+            >
+              <Send className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

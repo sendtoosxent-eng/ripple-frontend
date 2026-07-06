@@ -39,18 +39,18 @@ export function MessageBubble({
     <div className="group/msg flex w-full flex-col">
       <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
         {!mine && (
-          <div className="flex flex-col items-center gap-1 pb-1 opacity-0 transition-opacity group-hover/msg:opacity-100">
+          <div className="flex flex-col items-center gap-1 pb-1">
             <button
               aria-label="React"
               onClick={() => setPickerOpen((v) => !v)}
-              className="flex size-7 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
             >
               <SmilePlus className="size-3.5" />
             </button>
             <button
               aria-label="Reply"
               onClick={() => onReply?.(message)}
-              className="flex size-7 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
             >
               <CornerUpLeft className="size-3.5" />
             </button>
@@ -95,6 +95,31 @@ export function MessageBubble({
           >
             {showSender && (
               <p className="px-0.5 pb-0.5 text-xs font-semibold text-primary">{message.senderName}</p>
+            )}
+
+            {message.statusReplyPreview && (
+              <div
+                className={cn(
+                  "mb-1.5 flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs",
+                  mine ? "bg-primary-foreground/10" : "bg-foreground/5",
+                )}
+              >
+                {message.statusReplyPreview.type === "image" && message.statusReplyPreview.mediaUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={message.statusReplyPreview.mediaUrl} alt="Status" className="size-8 shrink-0 rounded object-cover" />
+                ) : (
+                  <span
+                    className="flex size-8 shrink-0 items-center justify-center rounded text-[0.6rem] font-semibold text-white"
+                    style={{ backgroundColor: message.statusReplyPreview.background || "#25D366" }}
+                  >
+                    Aa
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold opacity-90">Replied to status</p>
+                  {message.statusReplyPreview.text && <p className="truncate opacity-70">{message.statusReplyPreview.text}</p>}
+                </div>
+              </div>
             )}
 
             {message.replyPreview && (
@@ -178,18 +203,18 @@ export function MessageBubble({
         </div>
 
         {mine && (
-          <div className="flex flex-col items-center gap-1 pb-1 opacity-0 transition-opacity group-hover/msg:opacity-100">
+          <div className="flex flex-col items-center gap-1 pb-1">
             <button
               aria-label="React"
               onClick={() => setPickerOpen((v) => !v)}
-              className="flex size-7 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
             >
               <SmilePlus className="size-3.5" />
             </button>
             <button
               aria-label="Reply"
               onClick={() => onReply?.(message)}
-              className="flex size-7 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
             >
               <CornerUpLeft className="size-3.5" />
             </button>
