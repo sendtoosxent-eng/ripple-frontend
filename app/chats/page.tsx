@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { BellOff, ImageIcon, Mic, PenSquare, Search } from "lucide-react"
+import { BellOff, ImageIcon, Mic, PenSquare, Rss, Search } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAvatar } from "@/components/user-avatar"
 import { Logo } from "@/components/logo"
+import { StoryCircles } from "@/components/story-circles"
 import type { Conversation } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
@@ -113,6 +114,13 @@ export default function ChatsPage() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Chats</h1>
           </div>
           <div className="flex items-center gap-1">
+            <Link
+              href="/posts"
+              aria-label="Posts"
+              className="inline-flex size-9 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
+            >
+              <Rss className="size-5" />
+            </Link>
             <ThemeToggle />
             <Link href="/profile">
               <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} size="sm" />
@@ -130,6 +138,10 @@ export default function ChatsPage() {
           />
         </div>
       </header>
+
+      <div className="shrink-0 border-b border-border">
+        <StoryCircles />
+      </div>
 
       <div className="relative flex-1 overflow-y-auto px-2 py-2">
         {loading ? (

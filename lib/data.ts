@@ -15,6 +15,8 @@ export type MessageBase = {
   status?: "sent" | "delivered" | "read"
   senderName?: string
   senderAvatar?: string
+  replyPreview?: { id: string; senderName: string; preview: string } | null
+  reactions?: { emoji: string; count: number; userIds: number[] }[]
 }
 
 export type TextMessage = MessageBase & { type: "text"; text: string }

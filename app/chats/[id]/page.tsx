@@ -26,6 +26,7 @@ export default function ChatRoomPage() {
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [notFoundFlag, setNotFoundFlag] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [draft, setDraft] = useState("")
   const [recording, setRecording] = useState(false)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
@@ -82,6 +83,16 @@ export default function ChatRoomPage() {
       api.markConversationRead(params.id).catch(() => {})
     })
 
+    channel.listen(".message.reacted", (e: { message_id: number; reaction_summary: any[] }) => {
+      setMessages((m) =>
+        m.map((msg) =>
+          msg.id === String(e.message_id)
+            ? { ...msg, reactions: e.reaction_summary.map((r) => ({ emoji: r.emoji, count: r.count, userIds: r.user_ids })) }
+            : msg,
+        ),
+      )
+    })
+
     channel.listen(".messages.read", () => {
       setMessages((m) => m.map((msg) => (msg.from === "me" ? { ...msg, status: "read" } : msg)))
     })
@@ -128,14 +139,18 @@ export default function ChatRoomPage() {
     const text = draft.trim()
     if (!text) return
     setDraft("")
-    const saved = await api.sendTextMessage(params.id, text)
+    const replyId = replyingTo ? Number(replyingTo.id) : undefined
+    setReplyingTo(null)
+    const saved = await api.sendTextMessage(params.id, text, replyId)
     setMessages((m) => [...m, toUiMessage(saved, user.id)])
   }
 
   const sendVoice = async (blob: Blob, duration: string) => {
     setRecording(false)
     notifyRecording(false)
-    const saved = await api.sendVoiceMessage(params.id, blob, duration)
+    const replyId = replyingTo ? Number(replyingTo.id) : undefined
+    setReplyingTo(null)
+    const saved = await api.sendVoiceMessage(params.id, blob, duration, undefined, replyId)
     setMessages((m) => [...m, toUiMessage(saved, user.id)])
   }
 
@@ -144,8 +159,29 @@ export default function ChatRoomPage() {
     const file = previewFile
     setPreviewFile(null)
     setPreviewSrc(null)
-    const saved = await api.sendImageMessage(params.id, file, caption.trim() || undefined)
+    const replyId = replyingTo ? Number(replyingTo.id) : undefined
+    setReplyingTo(null)
+    const saved = await api.sendImageMessage(params.id, file, caption.trim() || undefined, replyId)
     setMessages((m) => [...m, toUiMessage(saved, user.id)])
+  }
+
+  const handleReact = async (messageId: string, emoji: string) => {
+    // optimistic update
+    setMessages((m) =>
+      m.map((msg) => {
+        if (msg.id !== messageId) return msg
+        const existing = msg.reactions?.find((r) => r.emoji === emoji)
+        const reactions = existing
+          ? msg.reactions!.map((r) => (r.emoji === emoji ? { ...r, count: r.count + 1 } : r))
+          : [...(msg.reactions || []), { emoji, count: 1, userIds: [user.id] }]
+        return { ...msg, reactions }
+      }),
+    )
+    try {
+      await api.reactToMessage(Number(messageId), emoji)
+    } catch {
+      // the live broadcast / next fetch will correct any drift
+    }
   }
 
   const pickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,7 +281,14 @@ export default function ChatRoomPage() {
           </span>
         </div>
         {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} onExpandImage={setLightbox} isGroup={conversation.isGroup} />
+          <MessageBubble
+            key={m.id}
+            message={m}
+            onExpandImage={setLightbox}
+            isGroup={conversation.isGroup}
+            onReact={handleReact}
+            onReply={setReplyingTo}
+          />
         ))}
         {otherTyping && (
           <div className="flex justify-start">
@@ -259,6 +302,27 @@ export default function ChatRoomPage() {
           </div>
         )}
       </div>
+
+      {/* Reply preview strip */}
+      {replyingTo && (
+        <div className="flex shrink-0 items-center gap-2 border-t border-border bg-muted/60 px-3.5 py-2">
+          <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
+            <p className="text-xs font-semibold text-primary">
+              Replying to {replyingTo.from === "me" ? "yourself" : replyingTo.senderName || conversation.name}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {replyingTo.type === "text" ? replyingTo.text : replyingTo.type === "image" ? "Photo" : "Voice message"}
+            </p>
+          </div>
+          <button
+            aria-label="Cancel reply"
+            onClick={() => setReplyingTo(null)}
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       {/* Input bar */}
       <div className="flex shrink-0 items-end gap-2 border-t border-border bg-card px-2.5 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">

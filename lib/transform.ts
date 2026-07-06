@@ -28,6 +28,8 @@ type ApiMessage = {
   status: "sent" | "delivered" | "read"
   created_at: string
   sender: ApiUser
+  reply_preview?: { id: number; sender_name: string; preview: string } | null
+  reaction_summary?: { emoji: string; count: number; user_ids: number[] }[]
 }
 
 type ApiConversation = {
@@ -66,6 +68,10 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
     status: m.status,
     senderName: m.sender?.name,
     senderAvatar: m.sender?.avatar_url || undefined,
+    replyPreview: m.reply_preview
+      ? { id: String(m.reply_preview.id), senderName: m.reply_preview.sender_name, preview: m.reply_preview.preview }
+      : null,
+    reactions: (m.reaction_summary || []).map((r) => ({ emoji: r.emoji, count: r.count, userIds: r.user_ids })),
   }
 
   if (m.type === "image") {

@@ -92,6 +92,30 @@ export const api = {
 
   deleteStatus: (id: number) => request(`/statuses/${id}`, { method: "DELETE" }),
 
+  // Friends
+  getFriendRequests: () => request("/friend-requests"),
+  sendFriendRequest: (receiverId: number) =>
+    request("/friend-requests", { method: "POST", body: JSON.stringify({ receiver_id: receiverId }) }),
+  acceptFriendRequest: (id: number) => request(`/friend-requests/${id}/accept`, { method: "POST" }),
+  rejectFriendRequest: (id: number) => request(`/friend-requests/${id}/reject`, { method: "POST" }),
+  getFriends: () => request("/friends"),
+  getFriendStatus: (userId: number | string) => request(`/friend-status/${userId}`),
+
+  // Posts
+  getPosts: () => request("/posts"),
+  createPost: (text: string, image?: File | null) => {
+    const form = new FormData()
+    if (text) form.append("text", text)
+    if (image) form.append("image", image)
+    return request("/posts", { method: "POST", body: form })
+  },
+  togglePostLike: (id: number) => request(`/posts/${id}/like`, { method: "POST" }),
+  deletePost: (id: number) => request(`/posts/${id}`, { method: "DELETE" }),
+
+  // Message reactions
+  reactToMessage: (messageId: number, emoji: string) =>
+    request(`/messages/${messageId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
+
   updateProfile: (
     data: { name?: string; username?: string; bio?: string; status?: string },
     avatar?: File | null,
@@ -119,27 +143,29 @@ export const api = {
     return request("/conversations", { method: "POST", body: JSON.stringify(data) })
   },
 
-  sendTextMessage: (conversationId: string, text: string) =>
+  sendTextMessage: (conversationId: string, text: string, replyToId?: number) =>
     request(`/conversations/${conversationId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ type: "text", text }),
+      body: JSON.stringify({ type: "text", text, reply_to_id: replyToId }),
     }),
 
-  sendImageMessage: (conversationId: string, file: File, caption?: string) => {
+  sendImageMessage: (conversationId: string, file: File, caption?: string, replyToId?: number) => {
     const form = new FormData()
     form.append("type", "image")
     form.append("image", file)
     if (caption) form.append("caption", caption)
+    if (replyToId) form.append("reply_to_id", String(replyToId))
     return request(`/conversations/${conversationId}/messages`, { method: "POST", body: form })
   },
 
-  sendVoiceMessage: (conversationId: string, blob: Blob, duration: string, waveform?: number[]) => {
+  sendVoiceMessage: (conversationId: string, blob: Blob, duration: string, waveform?: number[], replyToId?: number) => {
     const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm"
     const form = new FormData()
     form.append("type", "voice")
     form.append("audio", blob, `voice-note.${ext}`)
     form.append("duration", duration)
     if (waveform) form.append("waveform", JSON.stringify(waveform))
+    if (replyToId) form.append("reply_to_id", String(replyToId))
     return request(`/conversations/${conversationId}/messages`, { method: "POST", body: form })
   },
 }

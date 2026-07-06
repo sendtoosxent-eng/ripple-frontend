@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { ArrowLeft, AtSign, MessageCircle } from "lucide-react"
+import { ArrowLeft, AtSign, Check, MessageCircle, UserPlus, Users } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
@@ -18,6 +18,14 @@ type PublicUser = {
   bio: string | null
   status: string | null
   online: boolean
+  friends_count: number
+}
+
+type FriendStatus = {
+  status: "none" | "pending" | "accepted" | "rejected"
+  request_id: number | null
+  i_am_sender: boolean
+  friends_count: number
 }
 
 export default function UserProfilePage() {
@@ -25,7 +33,9 @@ export default function UserProfilePage() {
   const router = useRouter()
   const { user: me, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<PublicUser | null>(null)
+  const [friendStatus, setFriendStatus] = useState<FriendStatus | null>(null)
   const [starting, setStarting] = useState(false)
+  const [friendBusy, setFriendBusy] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !me) router.replace("/")
@@ -34,6 +44,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     if (!me) return
     api.getUser(params.id).then(setProfile)
+    api.getFriendStatus(params.id).then(setFriendStatus)
   }, [params.id, me])
 
   async function messageThem() {
@@ -47,7 +58,40 @@ export default function UserProfilePage() {
     }
   }
 
+  async function handleFriendAction() {
+    if (!profile) return
+    setFriendBusy(true)
+    try {
+      if (!friendStatus || friendStatus.status === "none" || friendStatus.status === "rejected") {
+        await api.sendFriendRequest(profile.id)
+        setFriendStatus({ status: "pending", request_id: null, i_am_sender: true, friends_count: friendStatus?.friends_count ?? 0 })
+      } else if (friendStatus.status === "pending" && !friendStatus.i_am_sender && friendStatus.request_id) {
+        await api.acceptFriendRequest(friendStatus.request_id)
+        setFriendStatus({ ...friendStatus, status: "accepted" })
+      }
+    } finally {
+      setFriendBusy(false)
+    }
+  }
+
   if (authLoading || !me || !profile) return null
+
+  const isMe = profile.id === me.id
+
+  const friendButtonLabel =
+    !friendStatus || friendStatus.status === "none" || friendStatus.status === "rejected"
+      ? "Add friend"
+      : friendStatus.status === "pending"
+        ? friendStatus.i_am_sender
+          ? "Request sent"
+          : "Accept request"
+        : "Friends"
+
+  const friendButtonIcon =
+    friendStatus?.status === "accepted" ? <Check className="size-4" /> : <UserPlus className="size-4" />
+
+  const friendButtonDisabled =
+    friendBusy || (friendStatus?.status === "pending" && friendStatus.i_am_sender) || friendStatus?.status === "accepted"
 
   return (
     <AppShell>
@@ -82,6 +126,13 @@ export default function UserProfilePage() {
             <AtSign className="size-3.5" />
             {profile.username}
           </p>
+
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Users className="size-4" />
+            {friendStatus?.friends_count ?? profile.friends_count} friend
+            {(friendStatus?.friends_count ?? profile.friends_count) === 1 ? "" : "s"}
+          </p>
+
           {profile.status && (
             <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-online/15 px-3 py-1 text-xs font-medium text-online">
               <span className="size-2 rounded-full bg-online" />
@@ -89,14 +140,26 @@ export default function UserProfilePage() {
             </span>
           )}
 
-          <button
-            onClick={messageThem}
-            disabled={starting}
-            className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/30 transition-transform active:scale-[0.98] disabled:opacity-60"
-          >
-            <MessageCircle className="size-4" />
-            {starting ? "Starting..." : "Message"}
-          </button>
+          {!isMe && (
+            <div className="mt-5 flex gap-2.5">
+              <button
+                onClick={messageThem}
+                disabled={starting}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/30 transition-transform active:scale-[0.98] disabled:opacity-60"
+              >
+                <MessageCircle className="size-4" />
+                {starting ? "Starting..." : "Message"}
+              </button>
+              <button
+                onClick={handleFriendAction}
+                disabled={friendButtonDisabled}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+              >
+                {friendButtonIcon}
+                {friendButtonLabel}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="px-5">
