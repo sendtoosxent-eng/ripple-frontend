@@ -74,7 +74,10 @@ export function BottomNav() {
     <div className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
       <div className="relative w-full max-w-md">
 
-        <NavBackground />
+        <NavBackground
+    activeIndex={activeIndex}
+    totalItems={items.length}
+/>
 
         <div className="relative flex h-20 items-center justify-around">
 
