@@ -1,81 +1,49 @@
 "use client"
 
-export function NavBackground() {
+import { motion } from "framer-motion"
+
+interface NavBackgroundProps {
+  activeIndex: number
+  totalItems: number
+}
+
+export function NavBackground({
+  activeIndex,
+  totalItems,
+}: NavBackgroundProps) {
+  const width = 100 / totalItems
+
   return (
-    <div className="absolute inset-0 overflow-visible">
-      <svg
-        viewBox="0 0 430 90"
-        preserveAspectRatio="none"
-        className="h-full w-full drop-shadow-[0_15px_30px_rgba(0,0,0,0.18)]"
+    <>
+      {/* Main Navigation Background */}
+      <div className="absolute inset-0 overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,.18)] border border-zinc-200/70 dark:border-zinc-800" />
+
+      {/* Moving Notch */}
+      <motion.div
+        animate={{
+          left: `${activeIndex * width}%`,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 350,
+          damping: 30,
+        }}
+        className="absolute top-0 h-full pointer-events-none"
+        style={{
+          width: `${width}%`,
+        }}
       >
-        <defs>
-          <filter
-            id="shadow"
-            x="-20%"
-            y="-20%"
-            width="140%"
-            height="160%"
-          >
-            <feDropShadow
-              dx="0"
-              dy="6"
-              stdDeviation="10"
-              floodOpacity="0.18"
-            />
-          </filter>
-        </defs>
+        <div className="relative flex justify-center">
+          {/* Creates the indentation */}
+          <div className="absolute -top-10 h-20 w-20 rounded-full bg-background" />
 
-        {/* Main Bar */}
-        <path
-          filter="url(#shadow)"
-          fill="white"
-          d="
-            M20,20
-            Q20,0 40,0
+          {/* Smooth left curve */}
+          <div className="absolute top-4 left-0 h-8 w-8 rounded-tr-full bg-white dark:bg-zinc-900" />
 
-            H155
-
-            C170,0 182,0 192,18
-
-            C200,34 212,44 215,44
-
-            C218,44 230,34 238,18
-
-            C248,0 260,0 275,0
-
-            H390
-
-            Q410,0 410,20
-
-            V70
-
-            Q410,90 390,90
-
-            H40
-
-            Q20,90 20,70
-
-            Z
-          "
-          className="fill-white dark:fill-zinc-900"
-        />
-
-        {/* Top Border */}
-        <path
-          d="
-            M40 0
-            H155
-            C170,0 182,0 192,18
-            C200,34 212,44 215,44
-            C218,44 230,34 238,18
-            C248,0 260,0 275,0
-            H390
-          "
-          fill="none"
-          className="stroke-zinc-200 dark:stroke-zinc-700"
-          strokeWidth="1"
-        />
-      </svg>
-    </div>
+          {/* Smooth right curve */}
+          <div className="absolute top-4 right-0 h-8 w-8 rounded-tl-full bg-white dark:bg-zinc-900" />
+        </div>
+      </motion.div>
+    </>
   )
 }
