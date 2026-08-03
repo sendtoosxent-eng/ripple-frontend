@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import {
   MessageCircle,
   CircleDashed,
@@ -46,6 +46,7 @@ const items = [
 ]
 
 export function BottomNav() {
+  const reduceMotion = useReducedMotion()
   const pathname = usePathname()
   const { user } = useAuth()
 
@@ -71,7 +72,7 @@ export function BottomNav() {
   }, [pathname])
 
   return (
-    <div className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
+    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
       <div className="relative w-full max-w-md">
 
         <NavBackground
@@ -87,23 +88,19 @@ export function BottomNav() {
             animate={{
               left: `${activeIndex * 20}%`,
             }}
-            transition={{
-              type: "spring",
-              stiffness: 350,
-              damping: 28,
-            }}
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 350, damping: 28 }}
             className="absolute top-0 flex w-1/5 justify-center pointer-events-none"
           >
             <motion.div
               layout
-              className="flex h-16 w-16 -translate-y-6 items-center justify-center rounded-full bg-lime-400 shadow-2xl ring-8 ring-background"
+              className="flex h-16 w-16 -translate-y-6 items-center justify-center rounded-full bg-primary shadow-2xl shadow-primary/30 ring-8 ring-background"
             >
               {(() => {
                 const ActiveIcon = items[activeIndex].icon
 
                 return (
                   <ActiveIcon
-                    className="h-7 w-7 text-black"
+                    className="h-7 w-7 text-primary-foreground"
                     strokeWidth={2.5}
                   />
                 )
@@ -111,21 +108,21 @@ export function BottomNav() {
             </motion.div>
           </motion.div>
 
-          {items.map(({ href, icon: Icon }, index) => {
+          {items.map(({ href, label, icon: Icon }, index) => {
             const active = index === activeIndex
 
             return (
               <Link
                 key={href}
                 href={href}
-                className="relative flex w-1/5 justify-center"
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className="relative flex h-16 w-1/5 justify-center focus-visible:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <motion.div
-                  whileTap={{
-                    scale: 0.9,
-                  }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.9 }}
                   className={cn(
-                    "relative flex h-16 w-16 items-center justify-center transition-all",
+                    "relative flex h-12 w-16 items-center justify-center transition-all",
                     active && "opacity-0"
                   )}
                 >
@@ -142,11 +139,12 @@ export function BottomNav() {
                       </span>
                     )}
                 </motion.div>
+                <span className={cn("absolute bottom-0 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}>{label}</span>
               </Link>
             )
           })}
         </div>
       </div>
-    </div>
+    </nav>
   )
 }

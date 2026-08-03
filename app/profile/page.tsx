@@ -32,7 +32,7 @@ export default function ProfilePage() {
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto pb-6">
+      <div className="flex-1 overflow-y-auto pb-32">
         <div className="relative -mt-[1px] h-32 w-full bg-muted">
           {user.cover_photo_url && (
             // eslint-disable-next-line @next/next/no-img-element

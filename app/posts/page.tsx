@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { getEcho } from "@/lib/echo"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { ListLoading } from "@/components/list-loading"
 
 type PostItem = {
   id: number
@@ -51,6 +53,8 @@ export default function PostsPage() {
   const [openComments, setOpenComments] = useState<number | null>(null)
   const [comments, setComments] = useState<Record<number, CommentItem[]>>({})
   const [commentDraft, setCommentDraft] = useState("")
+  const [pendingDelete, setPendingDelete] = useState<PostItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -163,9 +167,14 @@ export default function PostsPage() {
   }
 
   async function remove(post: PostItem) {
-    if (!confirm("Delete this post?")) return
-    await api.deletePost(post.id)
-    setPosts((p) => p.filter((x) => x.id !== post.id))
+    setDeleting(true)
+    try {
+      await api.deletePost(post.id)
+      setPosts((p) => p.filter((x) => x.id !== post.id))
+      setPendingDelete(null)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (authLoading || !user) return null
@@ -227,6 +236,7 @@ export default function PostsPage() {
               />
               <button
                 onClick={() => fileRef.current?.click()}
+                aria-label="Add an image"
                 className="flex size-9 items-center justify-center rounded-full text-primary hover:bg-primary/10"
               >
                 <ImageIcon className="size-5" />
@@ -247,7 +257,7 @@ export default function PostsPage() {
       {/* Feed */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="px-6 py-16 text-center text-sm text-muted-foreground">Loading posts...</p>
+          <ListLoading label="Loading posts" />
         ) : posts.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-muted-foreground">No posts yet — be the first!</p>
         ) : (
@@ -268,7 +278,7 @@ export default function PostsPage() {
                       </Link>
                       <span className="text-sm text-muted-foreground">· {timeAgo(post.created_at)}</span>
                       {post.user.id === user.id && (
-                        <button onClick={() => remove(post)} className="ml-auto text-muted-foreground hover:text-destructive">
+                        <button aria-label="Delete post" onClick={() => setPendingDelete(post)} className="ml-auto flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                           <Trash2 className="size-4" />
                         </button>
                       )}
@@ -280,6 +290,7 @@ export default function PostsPage() {
                     )}
                     <div className="mt-2 flex items-center gap-5">
                       <button
+                        aria-label={post.liked_by_me ? "Unlike post" : "Like post"}
                         onClick={() => toggleLike(post)}
                         className={cn(
                           "flex items-center gap-1.5 text-sm transition-colors",
@@ -290,6 +301,7 @@ export default function PostsPage() {
                         {post.likes_count > 0 && post.likes_count}
                       </button>
                       <button
+                        aria-label={openComments === post.id ? "Hide comments" : "Show comments"}
                         onClick={() => toggleComments(post)}
                         className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
@@ -297,6 +309,7 @@ export default function PostsPage() {
                         {post.comments_count > 0 && post.comments_count}
                       </button>
                       <button
+                        aria-label={post.reposted_by_me ? "Undo repost" : "Repost"}
                         onClick={() => toggleRepost(post)}
                         className={cn(
                           "flex items-center gap-1.5 text-sm transition-colors",
@@ -329,6 +342,7 @@ export default function PostsPage() {
                             className="h-9 flex-1 rounded-full border border-input bg-background px-3.5 text-sm text-foreground outline-none focus:border-ring"
                           />
                           <button
+                            aria-label="Send comment"
                             onClick={() => submitComment(post)}
                             className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
                           >
@@ -344,6 +358,14 @@ export default function PostsPage() {
           </ul>
         )}
       </div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete post?"
+        description="This post and its comments will be permanently removed."
+        busy={deleting}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => pendingDelete && remove(pendingDelete)}
+      />
     </AppShell>
   )
 }

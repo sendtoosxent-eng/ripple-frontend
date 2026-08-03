@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { Check, Heart, MessageSquare, Repeat2, Rss, UserPlus, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
+import { ListLoading } from "@/components/list-loading"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -108,7 +109,6 @@ export default function NotificationsPage() {
     channel.listen(".notification.created", () => refresh())
 
     return () => echo.leave(`user.${user.id}`)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   async function accept(id: number) {
@@ -139,9 +139,9 @@ export default function NotificationsPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Notifications</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-2 py-3">
+      <div className="flex-1 overflow-y-auto px-2 pb-32 pt-3">
         {loading ? (
-          <p className="px-6 py-16 text-center text-sm text-muted-foreground">Loading...</p>
+          <ListLoading label="Loading notifications" />
         ) : (
           <>
             {requests.length > 0 && (

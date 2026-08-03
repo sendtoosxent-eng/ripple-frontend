@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { toUiConversation } from "@/lib/transform"
 import type { Conversation } from "@/lib/data"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 function Action({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
@@ -38,6 +39,7 @@ export default function InfoPage() {
   const [notFoundFlag, setNotFoundFlag] = useState(false)
   const [muted, setMuted] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -68,7 +70,6 @@ export default function InfoPage() {
   }
 
   async function leaveGroup() {
-    if (!confirm(`Leave "${conversation!.name}"? You won't receive messages from this chat anymore.`)) return
     setLeaving(true)
     try {
       await api.leaveConversation(params.id)
@@ -151,7 +152,7 @@ export default function InfoPage() {
 
         {conversation.isGroup && (
           <button
-            onClick={leaveGroup}
+            onClick={() => setConfirmLeave(true)}
             disabled={leaving}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/10 py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-60"
           >
@@ -160,6 +161,7 @@ export default function InfoPage() {
           </button>
         )}
       </div>
+      <ConfirmDialog open={confirmLeave} title={`Leave ${conversation.name}?`} description="You won't receive messages from this group anymore." confirmLabel="Leave group" busy={leaving} onCancel={() => setConfirmLeave(false)} onConfirm={leaveGroup} />
     </AppShell>
   )
 }

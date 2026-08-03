@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 
 interface NavBackgroundProps {
   activeIndex: number
@@ -11,6 +11,7 @@ export function NavBackground({
   activeIndex,
   totalItems,
 }: NavBackgroundProps) {
+  const reduceMotion = useReducedMotion()
   const width = 100 / totalItems
 
   return (
@@ -23,11 +24,7 @@ export function NavBackground({
         animate={{
           left: `${activeIndex * width}%`,
         }}
-        transition={{
-          type: "spring",
-          stiffness: 350,
-          damping: 30,
-        }}
+        transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 350, damping: 30 }}
         className="absolute top-0 h-full pointer-events-none"
         style={{
           width: `${width}%`,

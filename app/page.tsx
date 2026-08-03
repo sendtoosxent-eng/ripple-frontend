@@ -9,6 +9,7 @@ import { Logo } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/lib/auth-context"
 import { Footer } from "@/components/footer"
+import { FaApple, FaGoogle } from "react-icons/fa"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -104,12 +105,7 @@ export default function LoginPage() {
               />
               Remember me
             </label>
-            <Link
-              href="/login"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Forgot password?
-            </Link>
+            <a href="mailto:support@ripple.com?subject=Password%20reset" className="text-sm font-medium text-primary hover:underline">Forgot password?</a>
           </div>
 
           <button
@@ -128,11 +124,11 @@ export default function LoginPage() {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted">
-            <span className="font-bold text-primary">G</span> Google
+          <button type="button" disabled title="Google sign-in is coming soon" className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground opacity-60">
+            <FaGoogle aria-hidden="true" className="size-4 text-primary" /> Google
           </button>
-          <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground transition-colors hover:bg-muted">
-            <span className="font-bold"></span> Apple
+          <button type="button" disabled title="Apple sign-in is coming soon" className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground opacity-60">
+            <FaApple aria-hidden="true" className="size-4" /> Apple
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Send, Trash2, X } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 
 type StatusItem = {
   id: number
@@ -37,6 +38,8 @@ export default function StatusViewerPage() {
   const [replyText, setReplyText] = useState("")
   const [sending, setSending] = useState(false)
   const [sentFlash, setSentFlash] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef<number>(0)
   const elapsedRef = useRef<number>(0)
@@ -55,7 +58,7 @@ export default function StatusViewerPage() {
       }
       setGroup(found)
     })
-  }, [params.userId, me])
+  }, [params.userId, me, router])
 
   const current = group?.statuses[index]
   const isMine = group?.user.id === me?.id
@@ -108,12 +111,14 @@ export default function StatusViewerPage() {
 
   async function handleDelete() {
     if (!current) return
-    if (!confirm("Delete this update?")) return
-    await api.deleteStatus(current.id)
-    if (group && group.statuses.length === 1) {
-      router.push("/status")
-    } else {
-      goNext()
+    setDeleting(true)
+    try {
+      await api.deleteStatus(current.id)
+      setConfirmDelete(false)
+      if (group && group.statuses.length === 1) router.push("/status")
+      else goNext()
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -158,7 +163,7 @@ export default function StatusViewerPage() {
           </p>
         </div>
         {isMine && (
-          <button onClick={handleDelete} aria-label="Delete" className="flex size-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10">
+          <button onClick={() => setConfirmDelete(true)} aria-label="Delete update" className="flex size-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10">
             <Trash2 className="size-4.5" />
           </button>
         )}
@@ -209,6 +214,7 @@ export default function StatusViewerPage() {
             {QUICK_REACTIONS.map((emoji) => (
               <button
                 key={emoji}
+                aria-label={`React with ${emoji}`}
                 onClick={() => sendReply(emoji)}
                 disabled={sending}
                 className="text-2xl transition-transform active:scale-90 disabled:opacity-50"
@@ -240,6 +246,7 @@ export default function StatusViewerPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog open={confirmDelete} title="Delete update?" description="This update will be permanently removed." busy={deleting} onCancel={() => setConfirmDelete(false)} onConfirm={handleDelete} />
     </div>
   )
 }

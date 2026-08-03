@@ -40,7 +40,6 @@ export default function ChatRoomPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const channelRef = useRef<any>(null)
   const typingTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
-  const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setWallpaperClass(getWallpaperClassName(getWallpaper()))

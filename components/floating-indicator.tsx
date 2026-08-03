@@ -45,8 +45,8 @@ export function FloatingIndicator({
           items-center
           justify-center
           rounded-full
-          bg-lime-400
-          shadow-[0_12px_30px_rgba(132,204,22,.45)]
+          bg-primary
+          shadow-[0_12px_30px_color-mix(in_oklab,var(--primary)_45%,transparent)]
           ring-8
           ring-background
         "

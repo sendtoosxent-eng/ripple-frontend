@@ -82,7 +82,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-32 pt-4">
         {/* Profile card */}
         <Link
           href="/profile"

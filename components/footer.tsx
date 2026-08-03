@@ -2,8 +2,6 @@ import Link from "next/link"
 import { FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6"
 import { Heart } from "lucide-react"
 
-import { Logo } from "@/components/logo"
-
 export function Footer() {
   return (
     <footer className="border-t border-border/50 bg-background">

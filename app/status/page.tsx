@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
+import { ListLoading } from "@/components/list-loading"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -46,7 +47,7 @@ export default function StatusFeedPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Updates</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-2 py-3">
+      <div className="flex-1 overflow-y-auto px-2 pb-32 pt-3">
         {/* My status */}
         <Link href={myGroup ? `/status/${user.id}` : "/status/new"} className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-muted/60">
           <div className="relative">
@@ -70,7 +71,7 @@ export default function StatusFeedPage() {
         )}
 
         {loading ? (
-          <p className="px-6 py-16 text-center text-sm text-muted-foreground">Loading...</p>
+          <ListLoading label="Loading updates" />
         ) : (
           <ul className="flex flex-col">
             {otherGroups.map((g) => (
@@ -104,7 +105,7 @@ export default function StatusFeedPage() {
         <Link
           href="/status/new"
           aria-label="Add status"
-          className="sticky bottom-4 left-full mr-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform active:scale-95"
+          className="sticky bottom-2 left-full mr-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform active:scale-95"
         >
           <Plus className="size-6" />
         </Link>

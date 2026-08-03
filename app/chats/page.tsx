@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 import { BellOff, ImageIcon, Mic, PenSquare, Rss, Search } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
+import { ListLoading } from "@/components/list-loading"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAvatar } from "@/components/user-avatar"
 import { Logo } from "@/components/logo"
@@ -61,7 +62,7 @@ export default function ChatsPage() {
     const echo = getEcho()
     if (!echo) return
 
-    const channels = conversations.map((c) => {
+    conversations.map((c) => {
       const channel = echo.private(`conversation.${c.id}`)
       channel.listen(".message.sent", (e: { message: any }) => {
         const isMine = e.message.sender_id === user.id
@@ -143,9 +144,9 @@ export default function ChatsPage() {
         <StoryCircles />
       </div>
 
-      <div className="relative flex-1 overflow-y-auto px-2 py-2">
+      <div className="relative flex-1 overflow-y-auto px-2 pb-32 pt-2">
         {loading ? (
-          <p className="px-6 py-16 text-center text-sm text-muted-foreground">Loading chats…</p>
+          <ListLoading label="Loading chats" />
         ) : error ? (
           <p className="px-6 py-16 text-center text-sm text-destructive">{error}</p>
         ) : (
@@ -204,7 +205,7 @@ export default function ChatsPage() {
         <Link
           href="/chats/new"
           aria-label="New chat"
-          className="sticky bottom-4 left-full mr-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform active:scale-95"
+          className="sticky bottom-2 left-full mr-4 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 transition-transform active:scale-95"
         >
           <PenSquare className="size-6" />
         </Link>
