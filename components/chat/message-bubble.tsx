@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Check, CheckCheck, CornerUpLeft, SmilePlus } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Check, CheckCheck, CornerUpLeft, MoreHorizontal } from "lucide-react"
 import { VoiceNote } from "@/components/chat/voice-note"
 import { UserAvatar } from "@/components/user-avatar"
 import type { Message } from "@/lib/data"
@@ -34,25 +34,34 @@ export function MessageBubble({
   const mine = message.from === "me"
   const showSender = isGroup && !mine
   const [pickerOpen, setPickerOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    const close = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setPickerOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => event.key === "Escape" && setPickerOpen(false)
+    document.addEventListener("mousedown", close)
+    document.addEventListener("keydown", escape)
+    return () => {
+      document.removeEventListener("mousedown", close)
+      document.removeEventListener("keydown", escape)
+    }
+  }, [pickerOpen])
 
   return (
-    <div className="group/msg flex w-full flex-col">
+    <div ref={menuRef} className="group/msg flex w-full flex-col">
       <div className={cn("flex w-full items-end gap-2", mine ? "justify-end" : "justify-start")}>
         {!mine && (
-          <div className="flex flex-col items-center gap-1 pb-1">
+          <div className="relative flex items-center pb-1">
             <button
-              aria-label="React"
+              aria-label="Message actions"
+              aria-expanded={pickerOpen}
               onClick={() => setPickerOpen((v) => !v)}
-              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-full bg-card/90 text-muted-foreground shadow-sm hover:text-foreground"
             >
-              <SmilePlus className="size-3.5" />
-            </button>
-            <button
-              aria-label="Reply"
-              onClick={() => onReply?.(message)}
-              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
-            >
-              <CornerUpLeft className="size-3.5" />
+              <MoreHorizontal className="size-4" />
             </button>
           </div>
         )}
@@ -63,24 +72,28 @@ export function MessageBubble({
 
         <div className="relative max-w-[78%]">
           {pickerOpen && (
-            <div
+            <div role="menu" aria-label="Message actions"
               className={cn(
-                "absolute -top-11 z-10 flex gap-1 rounded-full bg-card px-2 py-1.5 shadow-lg",
+                "absolute -top-12 z-20 flex items-center gap-1 rounded-full border border-border bg-card px-2 py-1.5 shadow-xl",
                 mine ? "right-0" : "left-0",
               )}
             >
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
+                  role="menuitem"
+                  aria-label={`React with ${emoji}`}
                   onClick={() => {
                     onReact?.(message.id, emoji)
                     setPickerOpen(false)
                   }}
-                  className="text-lg transition-transform active:scale-90"
+                  className="flex size-8 items-center justify-center rounded-full text-lg hover:bg-muted"
                 >
                   {emoji}
                 </button>
               ))}
+              <span className="mx-0.5 h-6 w-px bg-border" />
+              <button role="menuitem" aria-label="Reply to message" onClick={() => { onReply?.(message); setPickerOpen(false) }} className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><CornerUpLeft className="size-4" /></button>
             </div>
           )}
 
@@ -191,6 +204,7 @@ export function MessageBubble({
               {message.reactions.map((r) => (
                 <button
                   key={r.emoji}
+                  aria-label={`React with ${r.emoji}${r.count > 1 ? `, ${r.count} reactions` : ""}`}
                   onClick={() => onReact?.(message.id, r.emoji)}
                   className="flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 text-xs shadow-sm"
                 >
@@ -203,20 +217,14 @@ export function MessageBubble({
         </div>
 
         {mine && (
-          <div className="flex flex-col items-center gap-1 pb-1">
+          <div className="relative flex items-center pb-1">
             <button
-              aria-label="React"
+              aria-label="Message actions"
+              aria-expanded={pickerOpen}
               onClick={() => setPickerOpen((v) => !v)}
-              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-full bg-card/90 text-muted-foreground shadow-sm hover:text-foreground"
             >
-              <SmilePlus className="size-3.5" />
-            </button>
-            <button
-              aria-label="Reply"
-              onClick={() => onReply?.(message)}
-              className="flex size-7 items-center justify-center rounded-full bg-card/80 text-muted-foreground shadow-sm hover:text-foreground"
-            >
-              <CornerUpLeft className="size-3.5" />
+              <MoreHorizontal className="size-4" />
             </button>
           </div>
         )}

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { notFound, useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, ImageIcon, Mic, Phone, Plus, Send, Video, X } from "lucide-react"
+import { ArrowLeft, Mic, Phone, Plus, Send, Video, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { MessageBubble } from "@/components/chat/message-bubble"
 import { RecordingOverlay } from "@/components/chat/recording-overlay"
@@ -17,6 +17,7 @@ import { getEcho } from "@/lib/echo"
 import { playNotificationSound } from "@/lib/sound"
 import { getWallpaper, getWallpaperClassName } from "@/lib/wallpaper"
 import { cn } from "@/lib/utils"
+import { ListLoading } from "@/components/list-loading"
 
 export default function ChatRoomPage() {
   const params = useParams<{ id: string }>()
@@ -40,6 +41,7 @@ export default function ChatRoomPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const channelRef = useRef<any>(null)
   const typingTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
+  const nearBottomRef = useRef(true)
 
   useEffect(() => {
     setWallpaperClass(getWallpaperClassName(getWallpaper()))
@@ -120,11 +122,13 @@ export default function ChatRoomPage() {
   }, [params.id, user])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+    if (!nearBottomRef.current) return
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: messages.length ? "smooth" : "auto" })
   }, [messages, otherTyping, otherRecording])
 
   if (notFoundFlag) notFound()
-  if (authLoading || !user || !conversation) return null
+  if (authLoading || !user) return null
+  if (!conversation) return <AppShell><ListLoading label="Loading conversation" /></AppShell>
 
   function notifyTyping() {
     channelRef.current?.whisper("typing", { userId: user!.id, name: user!.name.split(" ")[0] })
@@ -257,13 +261,17 @@ export default function ChatRoomPage() {
         </Link>
         <button
           aria-label="Voice call"
-          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
+          disabled
+          title="Voice calling is coming soon"
+          className="hidden size-10 items-center justify-center rounded-full text-muted-foreground/50 sm:inline-flex"
         >
           <Phone className="size-5" />
         </button>
         <button
           aria-label="Video call"
-          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
+          disabled
+          title="Video calling is coming soon"
+          className="hidden size-10 items-center justify-center rounded-full text-muted-foreground/50 sm:inline-flex"
         >
           <Video className="size-5" />
         </button>
@@ -272,23 +280,33 @@ export default function ChatRoomPage() {
       {/* Messages */}
       <div
         ref={scrollRef}
+        onScroll={(event) => {
+          const element = event.currentTarget
+          nearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120
+        }}
         className={cn("flex-1 space-y-2.5 overflow-y-auto px-3 py-4", wallpaperClass)}
       >
-        <div className="flex justify-center">
-          <span className="rounded-full bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-            Today
-          </span>
-        </div>
-        {messages.map((m) => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            onExpandImage={setLightbox}
-            isGroup={conversation.isGroup}
-            onReact={handleReact}
-            onReply={setReplyingTo}
-          />
-        ))}
+        {messages.length === 0 && (
+          <div className="flex min-h-full flex-col items-center justify-center px-8 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"><Send className="size-6" /></div>
+            <p className="mt-4 font-semibold text-foreground">Start the conversation</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Send a message, photo, or voice note to {conversation.name}.</p>
+          </div>
+        )}
+        {messages.map((m, index) => {
+          const date = m.createdAt ? new Date(m.createdAt) : null
+          const previous = index > 0 && messages[index - 1].createdAt ? new Date(messages[index - 1].createdAt!) : null
+          const showDate = index === 0 || (date && previous && date.toDateString() !== previous.toDateString())
+          const dateLabel = date
+            ? date.toDateString() === new Date().toDateString() ? "Today" : date.toLocaleDateString([], { month: "short", day: "numeric", year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric" })
+            : index === 0 ? "Recent" : null
+          return (
+            <div key={m.id}>
+              {showDate && dateLabel && <div className="mb-2 flex justify-center"><span className="rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">{dateLabel}</span></div>}
+              <MessageBubble message={m} onExpandImage={setLightbox} isGroup={conversation.isGroup} onReact={handleReact} onReply={setReplyingTo} />
+            </div>
+          )
+        })}
         {otherTyping && (
           <div className="flex justify-start">
             <div className="rounded-2xl rounded-bl-md bg-bubble-received px-4 py-3 shadow-sm">
@@ -348,13 +366,6 @@ export default function ChatRoomPage() {
             placeholder="Message"
             className="w-full bg-transparent text-[0.95rem] text-foreground outline-none placeholder:text-muted-foreground"
           />
-          <button
-            aria-label="Attach image"
-            onClick={() => fileInputRef.current?.click()}
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ImageIcon className="size-5" />
-          </button>
         </div>
         {draft.trim() ? (
           <button
@@ -366,7 +377,7 @@ export default function ChatRoomPage() {
           </button>
         ) : (
           <button
-            aria-label="Hold to record voice message"
+            aria-label="Record voice message"
             onClick={() => {
               setRecording(true)
               notifyRecording(true)

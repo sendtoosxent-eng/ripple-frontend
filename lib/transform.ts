@@ -66,6 +66,7 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
     id: String(m.id),
     from: (m.sender_id === myId ? "me" : "them") as "me" | "them",
     time: fmtTime(m.created_at),
+    createdAt: m.created_at,
     status: m.status,
     senderName: m.sender?.name,
     senderAvatar: m.sender?.avatar_url || undefined,

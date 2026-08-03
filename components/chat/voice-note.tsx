@@ -56,7 +56,7 @@ export function VoiceNote({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
       <button
         type="button"
         aria-label={playing ? "Pause voice message" : "Play voice message"}
@@ -72,7 +72,7 @@ export function VoiceNote({
       <Waveform
         bars={waveform}
         progress={progress}
-        className="w-36"
+        className="min-w-0 flex-1 sm:w-36 sm:flex-none"
         barClassName={mine ? "bg-primary-foreground/40" : "bg-muted-foreground/40"}
         activeClassName={mine ? "bg-primary-foreground" : "bg-primary"}
       />

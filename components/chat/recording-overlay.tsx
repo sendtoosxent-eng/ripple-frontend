@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ChevronLeft, Mic, Send, Trash2 } from "lucide-react"
+import { Mic, Send, Trash2 } from "lucide-react"
 import { Waveform } from "@/components/waveform"
 
 const liveBars = Array.from({ length: 40 }, (_, i) => 0.3 + Math.abs(Math.sin(i)) * 0.7)
@@ -108,11 +108,6 @@ export function RecordingOverlay({
           <Trash2 className="size-4" />
           Cancel
         </button>
-
-        <span className="flex animate-pulse items-center gap-1 text-xs font-medium text-muted-foreground">
-          <ChevronLeft className="size-4" />
-          Slide to cancel
-        </span>
 
         <div className="flex items-center gap-3">
           <Mic className="size-5 text-destructive" />
