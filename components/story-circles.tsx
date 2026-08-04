@@ -20,13 +20,23 @@ export function StoryCircles() {
 
   useEffect(() => {
     if (!user) return
-    api.getStatuses().then(setGroups).catch(() => {})
+    const refresh = () => api.getStatuses().then(setGroups).catch(() => {})
+    const onVisible = () => document.visibilityState === "visible" && refresh()
+    refresh()
+    const timer = window.setInterval(refresh, 30_000)
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
   }, [user])
 
   if (!user) return null
 
   const myGroup = groups.find((g) => g.user.id === user.id)
-  const otherGroups = groups.filter((g) => g.user.id !== user.id)
+  const otherGroups = groups
+    .filter((g) => g.user.id !== user.id)
+    .sort((a, b) => Number(a.all_viewed) - Number(b.all_viewed))
 
   return (
     <div className="flex gap-4 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

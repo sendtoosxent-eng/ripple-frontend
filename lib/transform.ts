@@ -42,6 +42,7 @@ type ApiConversation = {
   members: ApiUser[]
   messages?: ApiMessage[]
   latestMessage?: ApiMessage | null
+  latest_message?: ApiMessage | null
   unread?: number
 }
 
@@ -100,14 +101,14 @@ export function toUiConversation(c: ApiConversation, myId: number): Conversation
   const displayName = c.is_group ? c.name || "Group chat" : otherMember?.name || "Unknown"
   const displayAvatar = c.is_group ? c.avatar_url || "/avatars/group-weekend.png" : otherMember?.avatar_url || "/avatars/you.png"
 
-  const latest = c.latestMessage
+  const latest = c.latest_message ?? c.latestMessage
   const lastMessage = latest
     ? latest.type === "text"
       ? latest.text || ""
       : latest.type === "image"
         ? "Photo"
         : "Voice message"
-    : "Say hi 👋"
+    : "No messages yet"
 
   return {
     id: String(c.id),
@@ -117,6 +118,7 @@ export function toUiConversation(c: ApiConversation, myId: number): Conversation
     online: otherMember?.online,
     members: c.members.map(toUiUser),
     lastMessage,
+    lastMessageFromMe: latest ? latest.sender_id === myId : false,
     lastMessageType: latest?.type,
     time: latest ? fmtTime(latest.created_at) : "",
     unread: c.unread || 0,

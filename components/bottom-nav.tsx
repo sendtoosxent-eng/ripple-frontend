@@ -2,147 +2,51 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import {
-  MessageCircle,
-  CircleDashed,
-  Bell,
-  UserRound,
-  Settings,
-} from "lucide-react"
-
+import { CircleDashed, MessageCircle, Settings, UserRound } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth-context"
-import { api } from "@/lib/api"
-import { NavBackground } from "./nav-background"
+
+function RipplePostIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 28" fill="none" aria-hidden="true" className={className}>
+      <path d="M5 18.5c3.2-5.9 6.6-8.9 10.2-8.9 2.8 0 5.4 1.7 7.8 5.1" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
+      <path d="M6.5 22c2.4-3.7 5.1-5.6 8-5.6 2.3 0 4.5 1.1 6.5 3.4" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" opacity=".75" />
+      <path d="m19.5 5 .65 1.85L22 7.5l-1.85.65L19.5 10l-.65-1.85L17 7.5l1.85-.65L19.5 5Z" fill="currentColor" />
+      <circle cx="6" cy="11" r="2" fill="currentColor" />
+    </svg>
+  )
+}
 
 const items = [
-  {
-    href: "/chats",
-    label: "Chats",
-    icon: MessageCircle,
-  },
-  {
-    href: "/status",
-    label: "Updates",
-    icon: CircleDashed,
-  },
-  {
-    href: "/notifications",
-    label: "Alerts",
-    icon: Bell,
-  },
-  {
-    href: "/profile",
-    label: "Profile",
-    icon: UserRound,
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings,
-  },
+  { href: "/chats", label: "Chats", icon: MessageCircle },
+  { href: "/status", label: "Updates", icon: CircleDashed },
+  { href: "/posts", label: "Posts", icon: RipplePostIcon, featured: true },
+  { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 export function BottomNav() {
-  const reduceMotion = useReducedMotion()
   const pathname = usePathname()
-  const { user } = useAuth()
-
-  const [pendingCount, setPendingCount] = useState(0)
-
-  useEffect(() => {
-    if (!user) return
-
-    Promise.all([api.getFriendRequests(), api.getUnreadNotificationCount()])
-      .then(([requests, notifications]) => setPendingCount(requests.length + Number(notifications.count || 0)))
-      .catch(() => {})
-  }, [user, pathname])
-
-  const activeIndex = useMemo(() => {
-    const index = items.findIndex(
-      (i) =>
-        pathname === i.href ||
-        pathname.startsWith(i.href + "/")
-    )
-
-    return index === -1 ? 0 : index
-  }, [pathname])
+  const reduceMotion = useReducedMotion()
 
   return (
-    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
-      <div className="relative w-full max-w-md">
-
-        <NavBackground
-    activeIndex={activeIndex}
-    totalItems={items.length}
-/>
-
-        <div className="relative flex h-20 items-center justify-around">
-
-          {/* Floating Button */}
-
-          <motion.div
-            animate={{
-              left: `${activeIndex * 20}%`,
-            }}
-            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 350, damping: 28 }}
-            className="absolute top-0 flex w-1/5 justify-center pointer-events-none"
-          >
-            <motion.div
-              layout
-              className="flex h-16 w-16 -translate-y-6 items-center justify-center rounded-full bg-primary shadow-2xl shadow-primary/30 ring-8 ring-background"
-            >
-              {(() => {
-                const ActiveIcon = items[activeIndex].icon
-
-                return (
-                  <ActiveIcon
-                    className="h-7 w-7 text-primary-foreground"
-                    strokeWidth={2.5}
-                  />
-                )
-              })()}
-            </motion.div>
-          </motion.div>
-
-          {items.map(({ href, label, icon: Icon }, index) => {
-            const active = index === activeIndex
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className="relative flex h-16 w-1/5 justify-center focus-visible:rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <motion.div
-                  whileTap={reduceMotion ? undefined : { scale: 0.9 }}
-                  className={cn(
-                    "relative flex h-12 w-16 items-center justify-center transition-all",
-                    active && "opacity-0"
-                  )}
-                >
-                  <Icon
-                    className="h-6 w-6 text-zinc-400"
-                  />
-
-                  {href === "/notifications" &&
-                    pendingCount > 0 && (
-                      <span className="absolute right-2 top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                        {pendingCount > 9
-                          ? "9+"
-                          : pendingCount}
-                      </span>
-                    )}
-                </motion.div>
-                <span className={cn("absolute bottom-0 text-[10px] font-medium", active ? "text-primary" : "text-muted-foreground")}>{label}</span>
-              </Link>
-            )
-          })}
-        </div>
+    <nav aria-label="Primary navigation" className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex justify-center px-3">
+      <div className="flex h-16 w-full max-w-md items-center justify-around rounded-[1.6rem] border border-border/80 bg-card/95 px-1.5 shadow-[0_10px_35px_rgba(0,0,0,.16)] backdrop-blur-xl">
+        {items.map(({ href, label, icon: Icon, featured }) => {
+          const active = pathname === href || pathname.startsWith(`${href}/`)
+          return (
+            <Link key={href} href={href} aria-label={label} aria-current={active ? "page" : undefined} className="relative flex h-12 w-1/5 items-center justify-center rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <motion.span whileTap={reduceMotion ? undefined : { scale: 0.88 }} className={cn(
+                "relative flex items-center justify-center transition-colors",
+                featured ? "size-12 -translate-y-2 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background" : "size-10 rounded-xl",
+                !featured && active ? "bg-primary/12 text-primary" : !featured ? "text-muted-foreground" : "",
+              )}>
+                <Icon className={featured ? "size-7" : "size-5.5"} />
+                {active && !featured && <motion.span layoutId="nav-dot" className="absolute -bottom-1 size-1 rounded-full bg-primary" />}
+              </motion.span>
+            </Link>
+          )
+        })}
       </div>
     </nav>
   )

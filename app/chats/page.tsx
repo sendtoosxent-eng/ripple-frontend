@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { BellOff, ImageIcon, Mic, PenSquare, Rss, Search } from "lucide-react"
+import { Bell, BellOff, ImageIcon, Mic, PenSquare, Search } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
 import { ListLoading } from "@/components/list-loading"
@@ -29,6 +29,7 @@ function Preview({ c }: { c: Conversation }) {
   return (
     <span className="flex items-center gap-1 truncate">
       {icon}
+      {c.lastMessageFromMe && c.lastMessage !== "No messages yet" && <span className="shrink-0">You:</span>}
       <span className="truncate">{c.lastMessage}</span>
     </span>
   )
@@ -41,6 +42,7 @@ export default function ChatsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [alertCount, setAlertCount] = useState(0)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -53,6 +55,23 @@ export default function ChatsPage() {
       .then((data) => setConversations(data.map((c: any) => toUiConversation(c, user.id))))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load chats"))
       .finally(() => setLoading(false))
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const refreshAlerts = () => {
+      Promise.all([api.getFriendRequests(), api.getUnreadNotificationCount()])
+        .then(([requests, notifications]) => setAlertCount(requests.length + Number(notifications.count || 0)))
+        .catch(() => {})
+    }
+    const onVisible = () => document.visibilityState === "visible" && refreshAlerts()
+    refreshAlerts()
+    const timer = window.setInterval(refreshAlerts, 30_000)
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
   }, [user])
 
   // Subscribe to every conversation's channel so the list updates live —
@@ -75,6 +94,7 @@ export default function ChatsPage() {
           const updated = {
             ...prev[idx],
             lastMessage: preview,
+            lastMessageFromMe: isMine,
             lastMessageType: e.message.type,
             time: new Date(e.message.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
             unread: isMine ? prev[idx].unread : prev[idx].unread + 1,
@@ -116,11 +136,12 @@ export default function ChatsPage() {
           </div>
           <div className="flex items-center gap-1">
             <Link
-              href="/posts"
-              aria-label="Posts"
-              className="inline-flex size-9 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
+              href="/notifications"
+              aria-label={alertCount ? `Notifications, ${alertCount} unread` : "Notifications"}
+              className="relative inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
             >
-              <Rss className="size-5" />
+              <Bell className="size-5" />
+              {alertCount > 0 && <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">{alertCount > 9 ? "9+" : alertCount}</span>}
             </Link>
             <ThemeToggle />
             <Link href="/profile">
@@ -144,7 +165,7 @@ export default function ChatsPage() {
         <StoryCircles />
       </div>
 
-      <div className="relative flex-1 overflow-y-auto px-2 pb-32 pt-2">
+      <div className="relative flex-1 overflow-y-auto px-2 pb-24 pt-2">
         {loading ? (
           <ListLoading label="Loading chats" />
         ) : error ? (

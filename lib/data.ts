@@ -46,6 +46,7 @@ export type Conversation = {
   members?: User[]
   online?: boolean
   lastMessage: string
+  lastMessageFromMe?: boolean
   lastMessageType?: "text" | "image" | "voice"
   time: string
   unread: number
