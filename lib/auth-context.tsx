@@ -13,6 +13,9 @@ type User = {
   cover_photo_url?: string | null
   status?: string | null
   bio?: string | null
+  friends_count?: number
+  posts_count?: number
+  reshared_count?: number
 }
 
 type AuthContextType = {

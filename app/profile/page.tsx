@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { AtSign, CircleDashed, Grid3X3, PencilLine, Settings, Sparkles } from "lucide-react"
+import { AtSign, Grid3X3, PencilLine, Plus, Repeat2, Settings, Sparkles, UsersRound } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
 import { UserAvatar } from "@/components/user-avatar"
@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const { user, loading } = useAuth()
   const [posts, setPosts] = useState<ProfilePost[]>([])
+  const [hasActiveStatus, setHasActiveStatus] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace("/")
@@ -23,8 +24,11 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) return
-    api.getPosts()
-      .then((result) => setPosts((result.data || []).filter((post: ProfilePost) => post.user.id === user.id)))
+    Promise.all([api.getPosts(), api.getStatuses()])
+      .then(([result, statuses]) => {
+        setPosts((result.data || []).filter((post: ProfilePost) => post.user.id === user.id))
+        setHasActiveStatus(statuses.some((group: { user: { id: number } }) => group.user.id === user.id))
+      })
       .catch(() => {})
   }, [user])
 
@@ -50,30 +54,45 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <div className="relative -mt-12 px-5">
-          <div className="flex items-end justify-between gap-3">
-            <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} online size="xl" className="ring-4 ring-background" />
-            <Link href="/settings/edit-profile" className="mb-1 inline-flex h-10 items-center gap-2 rounded-full border border-primary/30 bg-background px-4 text-sm font-semibold text-primary hover:bg-primary/10">
-              <PencilLine className="size-4" /> Edit profile
+        <div className="relative -mt-14 px-5 text-center">
+          <div className="flex justify-center">
+            <Link href={hasActiveStatus ? `/status/${user.id}` : "/status/new"} aria-label={hasActiveStatus ? "View your status" : "Add a status"} className="group relative rounded-full p-1 ring-3 ring-primary ring-offset-4 ring-offset-background">
+              <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} online size="xl" className="ring-2 ring-background" />
+              {!hasActiveStatus && (
+                <span className="absolute bottom-0 right-0 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground ring-3 ring-background">
+                  <Plus className="size-4" />
+                </span>
+              )}
             </Link>
           </div>
 
-          <h2 className="mt-3 text-2xl font-bold text-foreground">{user.name}</h2>
-          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+          <h2 className="mt-5 text-2xl font-bold text-foreground">{user.name}</h2>
+          <p className="flex items-center justify-center gap-1 text-sm text-muted-foreground">
             <AtSign className="size-3.5" /> {user.username}
           </p>
-          <p className="mt-4 text-pretty text-sm leading-relaxed text-foreground/80">
+          <p className="mx-auto mt-3 max-w-xs text-pretty text-sm leading-relaxed text-foreground/80">
             {user.bio || "Add a bio so your friends know a little more about you."}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Link href="/posts" className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
-              <p className="text-2xl font-bold text-foreground">{posts.length}</p>
-              <p className="text-xs text-muted-foreground">Posts shared</p>
+          <Link href="/settings/edit-profile" className="mt-4 inline-flex h-10 items-center gap-2 rounded-full border border-primary/30 bg-background px-5 text-sm font-semibold text-primary hover:bg-primary/10">
+            <PencilLine className="size-4" /> Edit profile
+          </Link>
+
+          <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-card text-center">
+            <div className="border-r border-border px-2 py-3.5">
+              <UsersRound className="mx-auto size-4 text-primary" />
+              <p className="mt-1 text-lg font-bold text-foreground">{user.friends_count ?? 0}</p>
+              <p className="text-[11px] text-muted-foreground">Friends</p>
+            </div>
+            <Link href="/posts" className="border-r border-border px-2 py-3.5 hover:bg-primary/5">
+              <Grid3X3 className="mx-auto size-4 text-primary" />
+              <p className="mt-1 text-lg font-bold text-foreground">{user.posts_count ?? posts.length}</p>
+              <p className="text-[11px] text-muted-foreground">Posts</p>
             </Link>
-            <Link href="/status/new" className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
-              <CircleDashed className="size-5 text-primary" />
-              <p className="mt-1 text-xs font-medium text-foreground">Add an update</p>
+            <Link href="/posts" className="px-2 py-3.5 hover:bg-primary/5">
+              <Repeat2 className="mx-auto size-4 text-primary" />
+              <p className="mt-1 text-lg font-bold text-foreground">{user.reshared_count ?? 0}</p>
+              <p className="text-[11px] text-muted-foreground">Reshared</p>
             </Link>
           </div>
 
