@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/lib/auth-context'
 import { SplashScreen } from '@/components/splash-screen'
+import { PwaProvider } from '@/components/pwa-provider'
 import './globals.css'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -23,6 +24,10 @@ export const metadata: Metadata = {
   description:
     'A clean, modern, mobile-first messaging app with voice notes, photos, groups, and dark mode.',
   generator: 'v0.app',
+  applicationName: 'Ripple',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'Ripple', statusBarStyle: 'default' },
+  formatDetection: { telephone: false },
 }
 
 export const viewport: Viewport = {
@@ -44,6 +49,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <SplashScreen />
+            <PwaProvider />
             {children}
           </AuthProvider>
         </ThemeProvider>

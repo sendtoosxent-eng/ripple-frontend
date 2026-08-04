@@ -21,6 +21,7 @@ import { UserAvatar } from "@/components/user-avatar"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
+import { PwaControls } from "@/components/pwa-controls"
 
 function Row({
   icon,
@@ -173,6 +174,7 @@ export default function SettingsPage() {
         <h2 className="mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Account
         </h2>
+        <PwaControls />
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <Row icon={<Lock className="size-4.5" />} label="Privacy & security" href="/settings" />
           <div className="mx-4 h-px bg-border" />

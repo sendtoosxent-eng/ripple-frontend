@@ -149,6 +149,10 @@ export const api = {
   getNotificationPreferences: () => request("/notification-preferences"),
   updateNotificationPreferences: (preferences: Partial<{ push: boolean; sound: boolean; vibrate: boolean; messages: boolean; social: boolean; reminders: boolean }>) =>
     request("/notification-preferences", { method: "PATCH", body: JSON.stringify(preferences) }),
+  getVapidPublicKey: () => request("/push/vapid-public-key"),
+  savePushSubscription: (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    request("/push/subscriptions", { method: "POST", body: JSON.stringify(subscription) }),
+  removePushSubscription: (endpoint: string) => request("/push/subscriptions", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
 
   updateProfile: (
     data: { name?: string; username?: string; bio?: string; status?: string },
