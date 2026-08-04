@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { ArrowLeft, Search, Users } from "lucide-react"
+import { ArrowLeft, ChevronRight, MessageCircle, Search, UserPlus, Users } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
@@ -18,6 +18,8 @@ export default function NewChatPage() {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState<number | null>(null)
+  const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -25,9 +27,12 @@ export default function NewChatPage() {
 
   useEffect(() => {
     if (!user) return
-    api
-      .getUsers()
-      .then(setUsers)
+    Promise.all([api.getUsers(), api.getFriends()])
+      .then(([people, friends]) => {
+        setUsers(people)
+        setFriendIds(new Set(friends.map((friend: Friend) => friend.id)))
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "People could not be loaded."))
       .finally(() => setLoading(false))
   }, [user])
 
@@ -36,10 +41,13 @@ export default function NewChatPage() {
   )
 
   async function startChat(friendId: number) {
+    setError(null)
     setStarting(friendId)
     try {
       const conversation = await api.createConversation({ member_ids: [friendId] })
       router.push(`/chats/${conversation.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The conversation could not be started.")
     } finally {
       setStarting(null)
     }
@@ -66,11 +74,13 @@ export default function NewChatPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search friends"
+            placeholder="Find people"
             className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
       </div>
+
+      {error && <p role="alert" className="mx-5 mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
       <div className="px-2 pt-3">
         <Link
@@ -95,18 +105,22 @@ export default function NewChatPage() {
           <ul className="flex flex-col">
             {filtered.map((u) => (
               <li key={u.id}>
-                <button
-                  onClick={() => startChat(u.id)}
-                  disabled={starting !== null}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-60"
-                >
+                <div className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-colors hover:bg-muted/60">
                   <UserAvatar src={u.avatar_url || "/avatars/you.png"} name={u.name} online={u.online} size="md" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-foreground">{u.name}</p>
                     <p className="truncate text-sm text-muted-foreground">@{u.username}</p>
                   </div>
-                  {starting === u.id && <span className="text-xs text-muted-foreground">Starting…</span>}
-                </button>
+                  {friendIds.has(u.id) ? (
+                    <button aria-label={`Message ${u.name}`} onClick={() => startChat(u.id)} disabled={starting !== null} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+                      <MessageCircle className="size-3.5" />{starting === u.id ? "Starting…" : "Message"}
+                    </button>
+                  ) : (
+                    <Link href={`/users/${u.id}?from=new-chat`} aria-label={`View ${u.name}'s profile and add them as a friend`} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted">
+                      <UserPlus className="size-3.5" /> Profile <ChevronRight className="size-3.5" />
+                    </Link>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

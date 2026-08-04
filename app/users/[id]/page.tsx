@@ -36,6 +36,7 @@ export default function UserProfilePage() {
   const [friendStatus, setFriendStatus] = useState<FriendStatus | null>(null)
   const [starting, setStarting] = useState(false)
   const [friendBusy, setFriendBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !me) router.replace("/")
@@ -49,10 +50,17 @@ export default function UserProfilePage() {
 
   async function messageThem() {
     if (!profile) return
+    if (friendStatus?.status !== "accepted") {
+      setError("Add this person as a friend before starting a conversation.")
+      return
+    }
+    setError(null)
     setStarting(true)
     try {
       const conversation = await api.createConversation({ member_ids: [profile.id] })
       router.push(`/chats/${conversation.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The conversation could not be started.")
     } finally {
       setStarting(false)
     }
@@ -61,6 +69,7 @@ export default function UserProfilePage() {
   async function handleFriendAction() {
     if (!profile) return
     setFriendBusy(true)
+    setError(null)
     try {
       if (!friendStatus || friendStatus.status === "none" || friendStatus.status === "rejected") {
         await api.sendFriendRequest(profile.id)
@@ -69,6 +78,8 @@ export default function UserProfilePage() {
         await api.acceptFriendRequest(friendStatus.request_id)
         setFriendStatus({ ...friendStatus, status: "accepted" })
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The friend request could not be updated.")
     } finally {
       setFriendBusy(false)
     }
@@ -97,7 +108,7 @@ export default function UserProfilePage() {
     <AppShell>
       <header className="absolute left-2 top-4 z-10">
         <Link
-          href="/chats"
+          href="/chats/new"
           aria-label="Back"
           className="inline-flex size-11 items-center justify-center rounded-full bg-background/70 text-foreground backdrop-blur hover:bg-background"
         >
@@ -141,10 +152,12 @@ export default function UserProfilePage() {
           )}
 
           {!isMe && (
-            <div className="mt-5 flex gap-2.5">
+            <div className="mt-5 flex flex-col items-center gap-3">
+              {friendStatus?.status !== "accepted" && <p className="max-w-xs rounded-xl bg-primary/10 px-3 py-2 text-sm text-primary">Become friends to start a private conversation.</p>}
+              <div className="flex gap-2.5">
               <button
                 onClick={messageThem}
-                disabled={starting}
+                disabled={starting || friendStatus?.status !== "accepted"}
                 className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/30 transition-transform active:scale-[0.98] disabled:opacity-60"
               >
                 <MessageCircle className="size-4" />
@@ -158,6 +171,8 @@ export default function UserProfilePage() {
                 {friendButtonIcon}
                 {friendButtonLabel}
               </button>
+              </div>
+              {error && <p role="alert" className="max-w-xs rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
             </div>
           )}
         </div>
