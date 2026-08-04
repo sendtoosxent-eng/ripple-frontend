@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { notFound, useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Mic, Phone, Plus, Send, Video, X } from "lucide-react"
+import { ArrowLeft, Info, Mic, MoreVertical, Phone, Plus, Send, Video, Wallpaper, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { MessageBubble } from "@/components/chat/message-bubble"
 import { RecordingOverlay } from "@/components/chat/recording-overlay"
@@ -33,6 +33,8 @@ export default function ChatRoomPage() {
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [demoCall, setDemoCall] = useState<"voice" | "video" | null>(null)
+  const [showOptions, setShowOptions] = useState(false)
   const [typingUsers, setTypingUsers] = useState<Record<number, string>>({})
   const otherTyping = Object.keys(typingUsers).length > 0
   const [otherRecording, setOtherRecording] = useState(false)
@@ -227,6 +229,9 @@ export default function ChatRoomPage() {
           : `${typingNames.length} people are typing...`
 
   const onlineCount = conversation.members?.filter((m) => m.online).length ?? 0
+  const profileHref = conversation.isGroup
+    ? `/info/${conversation.id}`
+    : `/users/${conversation.members?.find((m) => m.id !== String(user.id))?.id ?? ""}`
 
   const statusLine = otherRecording
     ? "Recording a voice message..."
@@ -239,11 +244,11 @@ export default function ChatRoomPage() {
           : "Last seen recently"
 
   return (
-    <AppShell>
+    <AppShell className="h-dvh min-h-0">
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={pickImage} />
 
       {/* Header */}
-      <header className="sticky top-0 z-30 flex shrink-0 items-center gap-1 border-b border-border bg-card/95 px-2 py-2.5 shadow-sm backdrop-blur-xl">
+      <header className="relative z-30 flex shrink-0 items-center gap-1 border-b border-border bg-card/95 px-2 py-2.5 shadow-sm backdrop-blur-xl">
         <Link
           href="/chats"
           aria-label="Back to chats"
@@ -252,11 +257,8 @@ export default function ChatRoomPage() {
           <ArrowLeft className="size-5" />
         </Link>
         <Link
-          href={
-            conversation.isGroup
-              ? `/info/${conversation.id}`
-              : `/users/${conversation.members?.find((m) => m.id !== String(user.id))?.id ?? ""}`
-          }
+          href={profileHref}
+          aria-label={conversation.isGroup ? `Open ${conversation.name} information` : `Open ${conversation.name}'s profile`}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
           <UserAvatar
@@ -282,20 +284,29 @@ export default function ChatRoomPage() {
         </Link>
         <button
           aria-label="Voice call"
-          disabled
-          title="Voice calling is coming soon"
-          className="hidden size-10 items-center justify-center rounded-full text-muted-foreground/50 sm:inline-flex"
+          onClick={() => setDemoCall("voice")}
+          title="Voice call demo"
+          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-primary"
         >
           <Phone className="size-5" />
         </button>
         <button
           aria-label="Video call"
-          disabled
-          title="Video calling is coming soon"
-          className="hidden size-10 items-center justify-center rounded-full text-muted-foreground/50 sm:inline-flex"
+          onClick={() => setDemoCall("video")}
+          title="Video call demo"
+          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-primary"
         >
           <Video className="size-5" />
         </button>
+        <button aria-label="Conversation options" aria-expanded={showOptions} onClick={() => setShowOptions((open) => !open)} className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground">
+          <MoreVertical className="size-5" />
+        </button>
+        {showOptions && (
+          <div className="absolute right-2 top-[calc(100%+0.4rem)] z-40 w-52 overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-xl">
+            <Link href={profileHref} onClick={() => setShowOptions(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"><Info className="size-4 text-primary" />{conversation.isGroup ? "Group info" : "View profile"}</Link>
+            <Link href="/settings/wallpaper" onClick={() => setShowOptions(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"><Wallpaper className="size-4 text-primary" />Chat wallpaper</Link>
+          </div>
+        )}
       </header>
 
       {/* Messages */}
@@ -308,7 +319,7 @@ export default function ChatRoomPage() {
         onLoadCapture={() => {
           if (nearBottomRef.current) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" })
         }}
-        className={cn("flex-1 space-y-2.5 overflow-y-auto px-3 py-4", wallpaperClass)}
+        className={cn("min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-3 py-4", wallpaperClass)}
       >
         {messages.length === 0 && (
           <div className="flex min-h-full flex-col items-center justify-center px-8 text-center">
@@ -445,6 +456,18 @@ export default function ChatRoomPage() {
             alt="Expanded"
             className="max-h-full max-w-full rounded-2xl object-contain"
           />
+        </div>
+      )}
+
+      {demoCall && (
+        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-slate-950 px-6 text-center text-white">
+          <button onClick={() => setDemoCall(null)} aria-label="Close call demo" className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"><X className="size-5" /></button>
+          <UserAvatar src={conversation.avatar} name={conversation.name} size="xl" className="rounded-full ring-4 ring-white/15" />
+          <h2 className="mt-5 text-2xl font-bold">{conversation.name}</h2>
+          <p className="mt-1 text-sm text-white/65">{demoCall === "video" ? "Video call demo" : "Voice call demo"}</p>
+          <div className="mt-8 flex size-16 items-center justify-center rounded-full bg-white/10">{demoCall === "video" ? <Video className="size-7" /> : <Phone className="size-7" />}</div>
+          <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">Calling UI is ready. Live connections will be enabled when WebRTC signalling is added.</p>
+          <button onClick={() => setDemoCall(null)} className="mt-8 inline-flex h-14 items-center gap-2 rounded-full bg-red-500 px-7 font-semibold text-white shadow-lg shadow-red-500/25"><Phone className="size-5 rotate-[135deg]" /> End call</button>
         </div>
       )}
     </AppShell>
