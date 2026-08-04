@@ -57,7 +57,7 @@ export default function ProfilePage() {
         <div className="relative -mt-14 px-5 text-center">
           <div className="flex justify-center">
             <Link href={hasActiveStatus ? `/status/${user.id}` : "/status/new"} aria-label={hasActiveStatus ? "View your status" : "Add a status"} className="group relative rounded-full p-1 ring-3 ring-primary ring-offset-4 ring-offset-background">
-              <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} online size="xl" className="ring-2 ring-background" />
+              <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} size="xl" className="rounded-full ring-2 ring-background" />
               {!hasActiveStatus && (
                 <span className="absolute bottom-0 right-0 flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground ring-3 ring-background">
                   <Plus className="size-4" />
