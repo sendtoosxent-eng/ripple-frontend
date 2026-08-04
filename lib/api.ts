@@ -26,7 +26,27 @@ async function request(path: string, options: RequestInit = {}) {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
+  const method = (options.method || "GET").toUpperCase()
+  const retryable = method === "GET"
+  let res: Response | null = null
+  let networkError: unknown = null
+
+  for (let attempt = 0; attempt < (retryable ? 3 : 1); attempt++) {
+    try {
+      res = await fetch(`${API_URL}${path}`, { ...options, headers })
+      if (![502, 503, 504].includes(res.status) || attempt === 2) break
+    } catch (error) {
+      networkError = error
+      if (!retryable || attempt === 2) break
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)))
+  }
+
+  if (!res) {
+    throw new Error(networkError instanceof Error && networkError.message
+      ? `Ripple could not reach the server. ${networkError.message}`
+      : "Ripple could not reach the server. Please check your connection and try again.")
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
