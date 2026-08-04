@@ -9,12 +9,14 @@ import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 const COLORS = ["#25D366", "#6366F1", "#F97316", "#EC4899", "#0EA5E9", "#111827"]
+const WALLPAPERS = ["/media/beach.png", "/media/city.png", "/media/coffee.png", "/media/hike.png"]
 
 export default function NewStatusPage() {
   const router = useRouter()
   const [mode, setMode] = useState<"text" | "image">("text")
   const [text, setText] = useState("")
   const [color, setColor] = useState(COLORS[0])
+  const [wallpaper, setWallpaper] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [posting, setPosting] = useState(false)
@@ -34,7 +36,7 @@ export default function NewStatusPage() {
     setPosting(true)
     try {
       if (mode === "text") {
-        await api.postTextStatus(text.trim(), color)
+        await api.postTextStatus(text.trim(), wallpaper || color)
       } else if (imageFile) {
         await api.postImageStatus(imageFile)
       }
@@ -99,7 +101,7 @@ export default function NewStatusPage() {
           <>
             <div
               className="flex aspect-[3/4] w-full max-w-xs items-center justify-center rounded-3xl p-6 shadow-lg"
-              style={{ backgroundColor: color }}
+              style={wallpaper ? { backgroundImage: `linear-gradient(rgb(0 0 0 / 35%), rgb(0 0 0 / 45%)), url(${wallpaper})`, backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: color }}
             >
               <textarea
                 value={text}
@@ -110,15 +112,18 @@ export default function NewStatusPage() {
                 className="w-full resize-none bg-transparent text-center text-2xl font-semibold text-white outline-none placeholder:text-white/60"
               />
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex max-w-xs flex-wrap justify-center gap-2.5">
               {COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() => setColor(c)}
+                  onClick={() => { setColor(c); setWallpaper(null) }}
                   aria-label={`Background ${c}`}
                   className={cn("size-8 rounded-full ring-2 ring-offset-2 ring-offset-background", color === c ? "ring-foreground" : "ring-transparent")}
                   style={{ backgroundColor: c }}
                 />
+              ))}
+              {WALLPAPERS.map((src) => (
+                <button key={src} onClick={() => setWallpaper(src)} aria-label="Use image wallpaper" className={cn("size-8 rounded-full bg-cover bg-center ring-2 ring-offset-2 ring-offset-background", wallpaper === src ? "ring-foreground" : "ring-transparent")} style={{ backgroundImage: `url(${src})` }} />
               ))}
             </div>
           </>

@@ -2,11 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { Send, Trash2, X } from "lucide-react"
+import { Heart, Repeat2, Send, Trash2, X } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { ConfirmDialog } from "@/components/confirm-dialog"
+import { cn } from "@/lib/utils"
 
 type StatusItem = {
   id: number
@@ -17,6 +18,9 @@ type StatusItem = {
   created_at: string
   viewed_by_me: boolean
   view_count: number
+  likes_count: number
+  liked_by_me: boolean
+  reposted_from: { id: number; user: { id: number; name: string; username: string } } | null
 }
 
 type StatusGroup = {
@@ -40,6 +44,9 @@ export default function StatusViewerPage() {
   const [sentFlash, setSentFlash] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [liking, setLiking] = useState(false)
+  const [reposting, setReposting] = useState(false)
+  const [repostFlash, setRepostFlash] = useState(false)
   const rafRef = useRef<number | null>(null)
   const startRef = useRef<number>(0)
   const elapsedRef = useRef<number>(0)
@@ -136,6 +143,33 @@ export default function StatusViewerPage() {
     }
   }
 
+  async function toggleLike() {
+    if (!current || liking) return
+    const previous = { liked: current.liked_by_me, count: current.likes_count }
+    setGroup((value) => value ? { ...value, statuses: value.statuses.map((status) => status.id === current.id ? { ...status, liked_by_me: !status.liked_by_me, likes_count: status.likes_count + (status.liked_by_me ? -1 : 1) } : status) } : value)
+    setLiking(true)
+    try {
+      const result = await api.toggleStatusLike(current.id)
+      setGroup((value) => value ? { ...value, statuses: value.statuses.map((status) => status.id === current.id ? { ...status, liked_by_me: result.liked, likes_count: result.likes_count } : status) } : value)
+    } catch {
+      setGroup((value) => value ? { ...value, statuses: value.statuses.map((status) => status.id === current.id ? { ...status, liked_by_me: previous.liked, likes_count: previous.count } : status) } : value)
+    } finally {
+      setLiking(false)
+    }
+  }
+
+  async function repost() {
+    if (!current || reposting) return
+    setReposting(true)
+    try {
+      await api.repostStatus(current.id)
+      setRepostFlash(true)
+      window.setTimeout(() => setRepostFlash(false), 1600)
+    } finally {
+      setReposting(false)
+    }
+  }
+
   if (authLoading || !me || !group || !current) return null
 
   return (
@@ -185,14 +219,22 @@ export default function StatusViewerPage() {
         onTouchEnd={() => setPaused(false)}
       >
         {current.type === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={current.media_url || "/placeholder.svg"} alt="Status" className="max-h-full max-w-full object-contain" />
+          <div className="relative flex h-full w-full items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={current.media_url || "/placeholder.svg"} alt="Status" className="max-h-full max-w-full object-contain" />
+            {current.reposted_from && <p className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">Reshared from {current.reposted_from.user.name}</p>}
+          </div>
         ) : (
           <div
             className="flex h-full w-full items-center justify-center p-8"
-            style={{ backgroundColor: current.background || "#25D366" }}
+            style={current.background?.startsWith("/") || current.background?.startsWith("http")
+              ? { backgroundImage: `linear-gradient(rgb(0 0 0 / 35%), rgb(0 0 0 / 45%)), url(${current.background})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : { backgroundColor: current.background || "#25D366" }}
           >
-            <p className="text-pretty text-center text-2xl font-semibold text-white">{current.text}</p>
+            <div className="text-center">
+              {current.reposted_from && <p className="mb-3 text-xs font-medium text-white/70">Reshared from {current.reposted_from.user.name}</p>}
+              <p className="text-pretty text-2xl font-semibold text-white">{current.text}</p>
+            </div>
           </div>
         )}
 
@@ -201,6 +243,7 @@ export default function StatusViewerPage() {
             Sent ✓
           </div>
         )}
+        {repostFlash && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/90 px-4 py-1.5 text-sm font-medium text-black">Added to your updates</div>}
 
         {/* Tap zones for prev/next — only over the top 80% so they don't block the reply bar below */}
         <button aria-label="Previous" onClick={goPrev} className="absolute inset-y-0 left-0 w-1/3" />
@@ -210,6 +253,14 @@ export default function StatusViewerPage() {
       {/* Reply / react bar — only for friends' statuses, not your own */}
       {!isMine && (
         <div className="shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+          <div className="mb-2 flex items-center justify-center gap-5">
+            <button onClick={toggleLike} disabled={liking} className="flex items-center gap-1.5 text-sm font-medium text-white disabled:opacity-50" aria-label={current.liked_by_me ? "Unlike update" : "Like update"}>
+              <Heart className={cn("size-5", current.liked_by_me && "fill-rose-500 text-rose-500")} /> {current.likes_count || "Like"}
+            </button>
+            <button onClick={repost} disabled={reposting} className="flex items-center gap-1.5 text-sm font-medium text-white disabled:opacity-50" aria-label="Reshare update">
+              <Repeat2 className="size-5" /> {reposting ? "Sharing…" : "Reshare"}
+            </button>
+          </div>
           <div className="mb-2 flex justify-center gap-3">
             {QUICK_REACTIONS.map((emoji) => (
               <button

@@ -108,6 +108,10 @@ export const api = {
   replyToStatus: (statusId: number, text: string) =>
     request(`/statuses/${statusId}/reply`, { method: "POST", body: JSON.stringify({ text }) }),
 
+  toggleStatusLike: (statusId: number) => request(`/statuses/${statusId}/like`, { method: "POST" }),
+
+  repostStatus: (statusId: number) => request(`/statuses/${statusId}/repost`, { method: "POST" }),
+
   // Friends
   getFriendRequests: () => request("/friend-requests"),
   sendFriendRequest: (receiverId: number) =>
