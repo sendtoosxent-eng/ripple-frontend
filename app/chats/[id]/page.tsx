@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { notFound, useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Info, Mic, MoreVertical, Phone, Plus, Send, Video, Wallpaper, X } from "lucide-react"
+import { ArrowLeft, Info, Loader2, Mic, MoreVertical, Phone, Plus, Send, Video, Wallpaper, WifiOff, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { MessageBubble } from "@/components/chat/message-bubble"
 import { RecordingOverlay } from "@/components/chat/recording-overlay"
@@ -27,8 +27,13 @@ export default function ChatRoomPage() {
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [notFoundFlag, setNotFoundFlag] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [hasMoreMessages, setHasMoreMessages] = useState(false)
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  const [online, setOnline] = useState(true)
+  const [realtimeConnected, setRealtimeConnected] = useState(true)
   const [replyingTo, setReplyingTo] = useState<Message | null>(null)
   const [draft, setDraft] = useState("")
+  const [draftReady, setDraftReady] = useState(false)
   const [recording, setRecording] = useState(false)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
@@ -48,7 +53,27 @@ export default function ChatRoomPage() {
 
   useEffect(() => {
     setWallpaperClass(getWallpaperClassName(getWallpaper()))
+    setOnline(navigator.onLine)
+    const connected = () => setOnline(true)
+    const disconnected = () => setOnline(false)
+    window.addEventListener("online", connected)
+    window.addEventListener("offline", disconnected)
+    return () => { window.removeEventListener("online", connected); window.removeEventListener("offline", disconnected) }
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    setDraftReady(false)
+    setDraft(localStorage.getItem(`ripple:draft:${user.id}:${params.id}`) || "")
+    setDraftReady(true)
+  }, [params.id, user])
+
+  useEffect(() => {
+    if (!user || !draftReady) return
+    const key = `ripple:draft:${user.id}:${params.id}`
+    if (draft) localStorage.setItem(key, draft)
+    else localStorage.removeItem(key)
+  }, [draft, draftReady, params.id, user])
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -64,6 +89,7 @@ export default function ChatRoomPage() {
         nearBottomRef.current = true
         setConversation(ui)
         setMessages(ui.messages)
+        setHasMoreMessages(Boolean(ui.hasMoreMessages))
         window.requestAnimationFrame(() => window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" })))
         // mark everything as read now that we've opened the chat
         api.markConversationRead(params.id).catch(() => {})
@@ -79,6 +105,12 @@ export default function ChatRoomPage() {
 
     const channel = echo.private(`conversation.${params.id}`)
     channelRef.current = channel
+    const connection = (echo.connector as any)?.pusher?.connection
+    const onConnected = () => setRealtimeConnected(true)
+    const onDisconnected = () => setRealtimeConnected(false)
+    connection?.bind("connected", onConnected)
+    connection?.bind("disconnected", onDisconnected)
+    connection?.bind("unavailable", onDisconnected)
 
     channel.listen(".message.sent", (e: { message: any }) => {
       setMessages((m) => [...m, toUiMessage(e.message, user.id)])
@@ -122,6 +154,9 @@ export default function ChatRoomPage() {
     })
 
     return () => {
+      connection?.unbind("connected", onConnected)
+      connection?.unbind("disconnected", onDisconnected)
+      connection?.unbind("unavailable", onDisconnected)
       echo.leave(`conversation.${params.id}`)
     }
   }, [params.id, user])
@@ -243,6 +278,21 @@ export default function ChatRoomPage() {
           ? "Online"
           : "Last seen recently"
 
+  async function loadOlderMessages() {
+    const oldest = messages[0]
+    const scroller = scrollRef.current
+    if (!oldest || !scroller || !user || loadingOlder) return
+    setLoadingOlder(true)
+    const previousHeight = scroller.scrollHeight
+    try {
+      const result = await api.getOlderMessages(params.id, oldest.id)
+      const older = result.data.map((message: any) => toUiMessage(message, user.id))
+      setMessages((current) => [...older, ...current])
+      setHasMoreMessages(Boolean(result.has_more))
+      window.requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight - previousHeight })
+    } finally { setLoadingOlder(false) }
+  }
+
   return (
     <AppShell className="h-dvh min-h-0">
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={pickImage} />
@@ -310,6 +360,7 @@ export default function ChatRoomPage() {
       </header>
 
       {/* Messages */}
+      {(!online || !realtimeConnected) && <div className="flex shrink-0 items-center justify-center gap-2 bg-amber-500/15 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300"><WifiOff className="size-3.5" />{online ? "Reconnecting live updates…" : "You’re offline — your draft is saved"}</div>}
       <div
         ref={scrollRef}
         onScroll={(event) => {
@@ -321,6 +372,7 @@ export default function ChatRoomPage() {
         }}
         className={cn("min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-3 py-4", wallpaperClass)}
       >
+        {hasMoreMessages && <div className="flex justify-center pb-2"><button onClick={loadOlderMessages} disabled={loadingOlder} className="inline-flex h-9 items-center gap-2 rounded-full bg-card/90 px-4 text-xs font-semibold text-foreground shadow-sm backdrop-blur disabled:opacity-60">{loadingOlder && <Loader2 className="size-3.5 animate-spin" />}Load older messages</button></div>}
         {messages.length === 0 && (
           <div className="flex min-h-full flex-col items-center justify-center px-8 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary"><Send className="size-6" /></div>

@@ -102,6 +102,7 @@ export const api = {
   getUser: (id: number | string) => request(`/users/${id}`),
 
   getConversation: (id: string) => request(`/conversations/${id}`),
+  getOlderMessages: (id: string, beforeId: string) => request(`/conversations/${id}/messages?before_id=${encodeURIComponent(beforeId)}&limit=40`),
 
   markConversationRead: (id: string) => request(`/conversations/${id}/read`, { method: "POST" }),
 

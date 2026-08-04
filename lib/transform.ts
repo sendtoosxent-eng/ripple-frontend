@@ -44,6 +44,7 @@ type ApiConversation = {
   latestMessage?: ApiMessage | null
   latest_message?: ApiMessage | null
   unread?: number
+  has_more_messages?: boolean
 }
 
 function fmtTime(iso: string) {
@@ -123,5 +124,6 @@ export function toUiConversation(c: ApiConversation, myId: number): Conversation
     time: latest ? fmtTime(latest.created_at) : "",
     unread: c.unread || 0,
     messages: (c.messages || []).map((m) => toUiMessage(m, myId)),
+    hasMoreMessages: Boolean(c.has_more_messages),
   }
 }

@@ -52,6 +52,7 @@ export type Conversation = {
   unread: number
   muted?: boolean
   messages: Message[]
+  hasMoreMessages?: boolean
 }
 
 export const currentUser: User = {
