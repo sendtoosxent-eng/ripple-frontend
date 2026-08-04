@@ -33,7 +33,7 @@ async function request(path: string, options: RequestInit = {}) {
 
   for (let attempt = 0; attempt < (retryable ? 3 : 1); attempt++) {
     try {
-      res = await fetch(`${API_URL}${path}`, { ...options, headers })
+      res = await fetch(`${API_URL}${path}`, { ...options, headers, cache: method === "GET" ? "no-store" : options.cache })
       if (![502, 503, 504].includes(res.status) || attempt === 2) break
     } catch (error) {
       networkError = error

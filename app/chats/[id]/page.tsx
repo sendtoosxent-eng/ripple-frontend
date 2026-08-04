@@ -38,6 +38,7 @@ export default function ChatRoomPage() {
   const [otherRecording, setOtherRecording] = useState(false)
   const [wallpaperClass, setWallpaperClass] = useState(getWallpaperClassName("default"))
   const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const channelRef = useRef<any>(null)
   const typingTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
@@ -58,8 +59,10 @@ export default function ChatRoomPage() {
       .getConversation(params.id)
       .then((data) => {
         const ui = toUiConversation(data, user.id)
+        nearBottomRef.current = true
         setConversation(ui)
         setMessages(ui.messages)
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" })))
         // mark everything as read now that we've opened the chat
         api.markConversationRead(params.id).catch(() => {})
       })
@@ -123,7 +126,7 @@ export default function ChatRoomPage() {
 
   useEffect(() => {
     if (!nearBottomRef.current) return
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: messages.length ? "smooth" : "auto" })
+    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" })
   }, [messages, otherTyping, otherRecording])
 
   if (notFoundFlag) notFound()
@@ -240,7 +243,7 @@ export default function ChatRoomPage() {
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={pickImage} />
 
       {/* Header */}
-      <header className="flex shrink-0 items-center gap-1 border-b border-border bg-card/80 px-2 py-2.5 backdrop-blur">
+      <header className="sticky top-0 z-30 flex shrink-0 items-center gap-1 border-b border-border bg-card/95 px-2 py-2.5 shadow-sm backdrop-blur-xl">
         <Link
           href="/chats"
           aria-label="Back to chats"
@@ -302,6 +305,9 @@ export default function ChatRoomPage() {
           const element = event.currentTarget
           nearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120
         }}
+        onLoadCapture={() => {
+          if (nearBottomRef.current) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" })
+        }}
         className={cn("flex-1 space-y-2.5 overflow-y-auto px-3 py-4", wallpaperClass)}
       >
         {messages.length === 0 && (
@@ -336,6 +342,7 @@ export default function ChatRoomPage() {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} aria-hidden="true" className="h-px" />
       </div>
 
       {/* Reply preview strip */}
