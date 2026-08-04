@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Heart, ImageIcon, MessageSquare, Repeat2, Send, Trash2, X } from "lucide-react"
+import { Bell, Heart, ImageIcon, MessageSquare, Repeat2, Send, Trash2, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
+import { BottomNav } from "@/components/bottom-nav"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
@@ -50,6 +52,8 @@ export default function PostsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [posting, setPosting] = useState(false)
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [openComments, setOpenComments] = useState<number | null>(null)
   const [comments, setComments] = useState<Record<number, CommentItem[]>>({})
   const [commentDraft, setCommentDraft] = useState("")
@@ -66,6 +70,7 @@ export default function PostsPage() {
     api
       .getPosts()
       .then((res) => setPosts(res.data))
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not load posts"))
       .finally(() => setLoading(false))
   }, [user])
 
@@ -118,6 +123,7 @@ export default function PostsPage() {
       setText("")
       setImageFile(null)
       setImagePreview(null)
+      setComposerOpen(false)
     } finally {
       setPosting(false)
     }
@@ -181,19 +187,22 @@ export default function PostsPage() {
 
   return (
     <AppShell>
-      <header className="flex shrink-0 items-center gap-2 border-b border-border px-2 py-2.5">
-        <Link
-          href="/chats"
-          aria-label="Back"
-          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground"
-        >
-          <ArrowLeft className="size-5" />
-        </Link>
-        <h1 className="text-lg font-semibold text-foreground">Posts</h1>
+      <header className="flex shrink-0 items-center justify-between border-b border-border/70 px-5 py-3.5">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Posts</h1>
+          <p className="text-xs text-muted-foreground">Moments from your circle</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Link href="/notifications" aria-label="Notifications" className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground">
+            <Bell className="size-5" />
+          </Link>
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* Composer */}
-      <div className="shrink-0 border-b border-border p-4">
+      <div className="shrink-0 border-b border-border/70 p-4">
+        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm shadow-primary/5">
         <div className="flex gap-3">
           <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} size="sm" />
           <div className="min-w-0 flex-1">
@@ -201,7 +210,8 @@ export default function PostsPage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="What's happening?"
-              rows={2}
+              rows={composerOpen || imagePreview ? 3 : 1}
+              onFocus={() => setComposerOpen(true)}
               maxLength={500}
               className="w-full resize-none bg-transparent text-[0.95rem] text-foreground outline-none placeholder:text-muted-foreground"
             />
@@ -220,7 +230,7 @@ export default function PostsPage() {
                 </button>
               </div>
             )}
-            <div className="mt-2 flex items-center justify-between">
+            <div className={cn("mt-2 items-center justify-between", composerOpen || imagePreview ? "flex" : "hidden")}>
               <input
                 ref={fileRef}
                 type="file"
@@ -252,18 +262,21 @@ export default function PostsPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-muted/20 px-3 pb-24 pt-3">
         {loading ? (
           <ListLoading label="Loading posts" />
+        ) : error ? (
+          <div className="rounded-2xl border border-destructive/20 bg-card px-6 py-12 text-center text-sm text-destructive">{error}</div>
         ) : posts.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-muted-foreground">No posts yet — be the first!</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border">
+          <ul className="flex flex-col gap-3">
             {posts.map((post) => (
-              <li key={post.id} className="p-4">
+              <li key={post.id} className="rounded-3xl border border-border/80 bg-card p-4 shadow-sm shadow-primary/5">
                 <div className="flex gap-3">
                   <Link href={`/users/${post.user.id}`}>
                     <UserAvatar src={post.user.avatar_url || "/avatars/you.png"} name={post.user.name} size="sm" />
@@ -366,6 +379,7 @@ export default function PostsPage() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && remove(pendingDelete)}
       />
+      <BottomNav />
     </AppShell>
   )
 }
