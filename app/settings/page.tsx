@@ -20,6 +20,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { UserAvatar } from "@/components/user-avatar"
 import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/lib/auth-context"
+import { api } from "@/lib/api"
 
 function Row({
   icon,
@@ -60,11 +61,33 @@ export default function SettingsPage() {
   const [sound, setSound] = useState(true)
   const [vibrate, setVibrate] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [preferenceError, setPreferenceError] = useState<string | null>(null)
   useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (!loading && !user) router.replace("/")
   }, [loading, user, router])
+
+  useEffect(() => {
+    if (!user) return
+    api.getNotificationPreferences().then((preferences) => {
+      setPush(preferences.push)
+      setSound(preferences.sound)
+      setVibrate(preferences.vibrate)
+    }).catch(() => setPreferenceError("Notification preferences could not be loaded."))
+  }, [user])
+
+  async function savePreference(key: "push" | "sound" | "vibrate", value: boolean) {
+    const setter = key === "push" ? setPush : key === "sound" ? setSound : setVibrate
+    setter(value)
+    setPreferenceError(null)
+    try {
+      await api.updateNotificationPreferences({ [key]: value })
+    } catch {
+      setter(!value)
+      setPreferenceError("That preference could not be saved. Please try again.")
+    }
+  }
 
   const isDark = mounted && resolvedTheme === "dark"
 
@@ -119,13 +142,14 @@ export default function SettingsPage() {
         <h2 className="mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Notifications
         </h2>
+        {preferenceError && <p role="alert" className="mb-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{preferenceError}</p>}
         <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5">
             <span className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground/70">
               <MessageSquareText className="size-4.5" />
             </span>
             <span className="flex-1 text-sm font-medium text-foreground">Push notifications</span>
-            <Switch checked={push} onCheckedChange={setPush} />
+            <Switch checked={push} onCheckedChange={(value) => savePreference("push", value)} />
           </label>
           <div className="mx-4 h-px bg-border" />
           <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5">
@@ -133,7 +157,7 @@ export default function SettingsPage() {
               <Volume2 className="size-4.5" />
             </span>
             <span className="flex-1 text-sm font-medium text-foreground">In-app sounds</span>
-            <Switch checked={sound} onCheckedChange={setSound} />
+            <Switch checked={sound} onCheckedChange={(value) => savePreference("sound", value)} />
           </label>
           <div className="mx-4 h-px bg-border" />
           <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5">
@@ -141,7 +165,7 @@ export default function SettingsPage() {
               <Vibrate className="size-4.5" />
             </span>
             <span className="flex-1 text-sm font-medium text-foreground">Vibrate</span>
-            <Switch checked={vibrate} onCheckedChange={setVibrate} />
+            <Switch checked={vibrate} onCheckedChange={(value) => savePreference("vibrate", value)} />
           </label>
         </section>
 

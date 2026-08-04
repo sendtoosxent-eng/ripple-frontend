@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Check, Heart, MessageSquare, Repeat2, Rss, UserPlus, X } from "lucide-react"
+import { Check, Heart, MessageCircle, MessageSquare, Repeat2, Rss, UserPlus, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
 import { ListLoading } from "@/components/list-loading"
@@ -19,8 +19,8 @@ type FriendRequestItem = {
 
 type NotificationItem = {
   id: number
-  type: "post_liked" | "post_commented" | "post_reposted" | "new_post" | "friend_accepted"
-  data: { actor_id: number; actor_name: string; actor_avatar: string | null; post_id?: number; preview?: string }
+  type: "post_liked" | "post_commented" | "post_reposted" | "new_post" | "friend_accepted" | "new_message"
+  data: { actor_id: number; actor_name: string; actor_avatar: string | null; post_id?: number; conversation_id?: number; preview?: string }
   created_at: string
 }
 
@@ -42,6 +42,8 @@ function NotificationRow({ n }: { n: NotificationItem }) {
       <Repeat2 className="size-4 text-emerald-600" />
     ) : n.type === "new_post" ? (
       <Rss className="size-4 text-primary" />
+    ) : n.type === "new_message" ? (
+      <MessageCircle className="size-4 text-primary" />
     ) : (
       <UserPlus className="size-4 text-emerald-600" />
     )
@@ -55,9 +57,15 @@ function NotificationRow({ n }: { n: NotificationItem }) {
           ? "reposted your post"
           : n.type === "new_post"
           ? `posted: "${n.data.preview}"`
+          : n.type === "new_message"
+          ? `sent you a message: "${n.data.preview}"`
           : "accepted your friend request"
 
-  const href = n.type === "friend_accepted" ? `/users/${n.data.actor_id}` : "/posts"
+  const href = n.type === "friend_accepted"
+    ? `/users/${n.data.actor_id}`
+    : n.type === "new_message" && n.data.conversation_id
+      ? `/chats/${n.data.conversation_id}`
+      : "/posts"
 
   return (
     <Link href={href} className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-muted/60">

@@ -144,8 +144,26 @@ export default function ChatRoomPage() {
     setDraft("")
     const replyId = replyingTo ? Number(replyingTo.id) : undefined
     setReplyingTo(null)
-    const saved = await api.sendTextMessage(params.id, text, replyId)
-    setMessages((m) => [...m, toUiMessage(saved, user.id)])
+    const temporaryId = `pending-${crypto.randomUUID()}`
+    const pending: Message = { id: temporaryId, type: "text", from: "me", text, time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), createdAt: new Date().toISOString(), status: "sending" }
+    setMessages((current) => [...current, pending])
+    try {
+      const saved = await api.sendTextMessage(params.id, text, replyId)
+      setMessages((current) => current.map((message) => message.id === temporaryId ? toUiMessage(saved, user.id) : message))
+    } catch {
+      setMessages((current) => current.map((message) => message.id === temporaryId ? { ...message, status: "failed" } : message))
+    }
+  }
+
+  const retryText = async (message: Message) => {
+    if (message.type !== "text" || message.status !== "failed") return
+    setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status: "sending" } : item))
+    try {
+      const saved = await api.sendTextMessage(params.id, message.text)
+      setMessages((current) => current.map((item) => item.id === message.id ? toUiMessage(saved, user.id) : item))
+    } catch {
+      setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status: "failed" } : item))
+    }
   }
 
   const sendVoice = async (blob: Blob, duration: string) => {
@@ -303,7 +321,7 @@ export default function ChatRoomPage() {
           return (
             <div key={m.id}>
               {showDate && dateLabel && <div className="mb-2 flex justify-center"><span className="rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">{dateLabel}</span></div>}
-              <MessageBubble message={m} onExpandImage={setLightbox} isGroup={conversation.isGroup} onReact={handleReact} onReply={setReplyingTo} />
+              <MessageBubble message={m} onExpandImage={setLightbox} isGroup={conversation.isGroup} onReact={handleReact} onReply={setReplyingTo} onRetry={retryText} />
             </div>
           )
         })}

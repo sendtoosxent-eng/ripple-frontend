@@ -55,11 +55,10 @@ export function BottomNav() {
   useEffect(() => {
     if (!user) return
 
-    api
-      .getFriendRequests()
-      .then((r) => setPendingCount(r.length))
+    Promise.all([api.getFriendRequests(), api.getUnreadNotificationCount()])
+      .then(([requests, notifications]) => setPendingCount(requests.length + Number(notifications.count || 0)))
       .catch(() => {})
-  }, [user])
+  }, [user, pathname])
 
   const activeIndex = useMemo(() => {
     const index = items.findIndex(

@@ -13,7 +13,7 @@ export type MessageBase = {
   from: "me" | "them"
   time: string
   createdAt?: string
-  status?: "sent" | "delivered" | "read"
+  status?: "sending" | "sent" | "delivered" | "read" | "failed"
   senderName?: string
   senderAvatar?: string
   replyPreview?: { id: string; senderName: string; preview: string } | null

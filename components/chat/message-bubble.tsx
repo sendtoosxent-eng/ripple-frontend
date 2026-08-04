@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Check, CheckCheck, CornerUpLeft, MoreHorizontal } from "lucide-react"
+import { CornerUpLeft, MoreHorizontal } from "lucide-react"
 import { VoiceNote } from "@/components/chat/voice-note"
 import { UserAvatar } from "@/components/user-avatar"
 import type { Message } from "@/lib/data"
@@ -9,13 +9,19 @@ import { cn } from "@/lib/utils"
 
 const QUICK_EMOJIS = ["❤️", "😂", "👍", "😮", "😢", "🙏"]
 
-function Ticks({ status }: { status?: string }) {
+function DeliveryDots({ status }: { status?: string }) {
   if (!status) return null
-  if (status === "read")
-    return <CheckCheck className="size-3.5 text-primary-foreground/90" />
-  if (status === "delivered")
-    return <CheckCheck className="size-3.5 text-primary-foreground/60" />
-  return <Check className="size-3.5 text-primary-foreground/60" />
+  if (status === "failed") return <span role="img" aria-label="Failed to send" title="Failed to send" className="size-2 rounded-full bg-destructive ring-2 ring-destructive/20" />
+  if (status === "sending") return <span role="img" aria-label="Sending" title="Sending" className="size-2 animate-pulse rounded-full border border-primary-foreground/70 motion-reduce:animate-none" />
+  const count = status === "read" ? 3 : status === "delivered" ? 2 : 1
+  const label = status === "read" ? "Read" : status === "delivered" ? "Delivered" : "Sent"
+  return (
+    <span role="img" aria-label={label} title={label} className="inline-flex items-center gap-0.5">
+      {Array.from({ length: count }, (_, index) => (
+        <span key={index} aria-hidden="true" className={cn("size-1.5 rounded-full", status === "read" ? "bg-primary-foreground" : "bg-primary-foreground/60")} />
+      ))}
+    </span>
+  )
 }
 
 export function MessageBubble({
@@ -24,12 +30,14 @@ export function MessageBubble({
   isGroup,
   onReact,
   onReply,
+  onRetry,
 }: {
   message: Message
   onExpandImage?: (src: string) => void
   isGroup?: boolean
   onReact?: (messageId: string, emoji: string) => void
   onReply?: (message: Message) => void
+  onRetry?: (message: Message) => void
 }) {
   const mine = message.from === "me"
   const showSender = isGroup && !mine
@@ -195,9 +203,13 @@ export function MessageBubble({
               >
                 {message.time}
               </span>
-              {mine && <Ticks status={message.status} />}
+              {mine && <DeliveryDots status={message.status} />}
             </div>
           </div>
+
+          {mine && message.status === "failed" && (
+            <button onClick={() => onRetry?.(message)} className="mt-1 text-xs font-semibold text-destructive hover:underline">Retry</button>
+          )}
 
           {!!message.reactions?.length && (
             <div className={cn("mt-1 flex flex-wrap gap-1", mine ? "justify-end" : "justify-start")}>

@@ -53,6 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!user) return
+    const report = () => api.updatePresence(document.visibilityState === "visible").catch(() => {})
+    report()
+    const interval = window.setInterval(report, 60_000)
+    document.addEventListener("visibilitychange", report)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener("visibilitychange", report)
+    }
+  }, [user])
+
   async function login(email: string, password: string) {
     const res = await api.login({ email, password })
     localStorage.setItem("token", res.token)

@@ -30,7 +30,19 @@ async function request(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const error = new Error(body.message || "Request failed") as Error & { errors?: unknown; status?: number }
+    const validationMessage = body.errors && typeof body.errors === "object"
+      ? Object.values(body.errors as Record<string, string[]>).flat()[0]
+      : null
+    const fallback = res.status === 401
+      ? "Your session has expired. Please sign in again."
+      : res.status === 403
+        ? "You do not have permission to do that."
+        : res.status === 429
+          ? "Too many attempts. Please wait a moment and try again."
+          : res.status >= 500
+            ? "The service is temporarily unavailable. Please try again."
+            : "Request failed. Please try again."
+    const error = new Error(validationMessage || body.message || fallback) as Error & { errors?: unknown; status?: number }
     error.errors = body.errors
     error.status = res.status
     throw error
@@ -59,6 +71,7 @@ export const api = {
     request("/login", { method: "POST", body: JSON.stringify(data) }),
 
   logout: () => request("/logout", { method: "POST" }),
+  updatePresence: (online: boolean) => request("/presence", { method: "POST", body: JSON.stringify({ online }) }),
 
   me: () => request("/me"),
 
@@ -133,6 +146,9 @@ export const api = {
   // Notifications
   getNotifications: () => request("/notifications"),
   getUnreadNotificationCount: () => request("/notifications/unread-count"),
+  getNotificationPreferences: () => request("/notification-preferences"),
+  updateNotificationPreferences: (preferences: Partial<{ push: boolean; sound: boolean; vibrate: boolean; messages: boolean; social: boolean; reminders: boolean }>) =>
+    request("/notification-preferences", { method: "PATCH", body: JSON.stringify(preferences) }),
 
   updateProfile: (
     data: { name?: string; username?: string; bio?: string; status?: string },
