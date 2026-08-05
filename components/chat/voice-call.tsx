@@ -22,13 +22,14 @@ type Props = {
   user: { id: number; name: string }
   peer: { id: string; name: string; avatar: string }
   onLog: (status: "missed" | "declined" | "completed", duration: number) => void
+  onNotify: () => Promise<unknown>
 }
 
 const rtcConfiguration: RTCConfiguration = {
   iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }],
 }
 
-export function VoiceCall({ channel, user, peer, onLog }: Props) {
+export function VoiceCall({ channel, user, peer, onLog, onNotify }: Props) {
   const [phase, setPhase] = useState<CallPhase>("idle")
   const [muted, setMuted] = useState(false)
   const [speakerOn, setSpeakerOn] = useState(true)
@@ -44,6 +45,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
   const loggedRef = useRef(false)
   const secondsRef = useRef(0)
   const ringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inviteTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const moveTo = (next: CallPhase) => {
     phaseRef.current = next
@@ -61,6 +63,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
 
   const cleanUp = useCallback(() => {
     if (ringTimerRef.current) clearTimeout(ringTimerRef.current)
+    if (inviteTimerRef.current) clearInterval(inviteTimerRef.current)
     peerConnectionRef.current?.close()
     peerConnectionRef.current = null
     localStreamRef.current?.getTracks().forEach((track) => track.stop())
@@ -121,9 +124,14 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
     try {
       if (!channel) throw new Error("Live calling is reconnecting. Please try again in a moment.")
       await getMicrophone()
+      await onNotify().catch(() => null)
       send({ type: "invite", callId: nextCallId })
+      inviteTimerRef.current = setInterval(() => {
+        if (phaseRef.current === "ringing") send({ type: "invite", callId: nextCallId })
+      }, 2000)
       ringTimerRef.current = setTimeout(() => {
         if (phaseRef.current !== "ringing" || loggedRef.current) return
+        if (inviteTimerRef.current) clearInterval(inviteTimerRef.current)
         loggedRef.current = true
         onLog("missed", 0)
         send({ type: "end", callId: nextCallId })
@@ -167,6 +175,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
       if (signal.toUserId !== user.id || signal.fromUserId !== Number(peer.id)) return
 
       if (signal.type === "invite") {
+        if (phaseRef.current === "incoming" && signal.callId === callIdRef.current) return
         if (phaseRef.current !== "idle") {
           send({ type: "busy", callId: signal.callId })
           return
@@ -182,6 +191,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
       try {
         if (signal.type === "accept") {
           if (ringTimerRef.current) clearTimeout(ringTimerRef.current)
+          if (inviteTimerRef.current) clearInterval(inviteTimerRef.current)
           moveTo("connecting")
           const connection = await makePeerConnection(signal.callId)
           const offer = await connection.createOffer()

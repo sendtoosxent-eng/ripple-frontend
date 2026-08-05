@@ -245,6 +245,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ type: "call", call_status: callStatus, call_duration: callDuration }),
     }),
+
+  notifyIncomingCall: (conversationId: string) =>
+    request(`/conversations/${conversationId}/calls/notify`, { method: "POST" }),
 }
 
 export { API_URL, getToken }
