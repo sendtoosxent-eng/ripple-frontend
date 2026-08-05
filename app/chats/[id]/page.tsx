@@ -19,6 +19,7 @@ import { getWallpaper, getWallpaperClassName } from "@/lib/wallpaper"
 import { cn } from "@/lib/utils"
 import { ListLoading } from "@/components/list-loading"
 import { normalizePage } from "@/lib/pagination"
+import { VoiceCall } from "@/components/chat/voice-call"
 
 export default function ChatRoomPage() {
   const params = useParams<{ id: string }>()
@@ -39,7 +40,8 @@ export default function ChatRoomPage() {
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
-  const [demoCall, setDemoCall] = useState<"voice" | "video" | null>(null)
+  const [demoCall, setDemoCall] = useState<"video" | null>(null)
+  const [realtimeChannel, setRealtimeChannel] = useState<any>(null)
   const [showOptions, setShowOptions] = useState(false)
   const [typingUsers, setTypingUsers] = useState<Record<number, string>>({})
   const otherTyping = Object.keys(typingUsers).length > 0
@@ -107,6 +109,7 @@ export default function ChatRoomPage() {
 
     const channel = echo.private(`conversation.${params.id}`)
     channelRef.current = channel
+    setRealtimeChannel(channel)
     const connection = (echo.connector as any)?.pusher?.connection
     const onConnected = () => setRealtimeConnected(true)
     const onDisconnected = () => setRealtimeConnected(false)
@@ -156,6 +159,7 @@ export default function ChatRoomPage() {
     })
 
     return () => {
+      setRealtimeChannel(null)
       connection?.unbind("connected", onConnected)
       connection?.unbind("disconnected", onDisconnected)
       connection?.unbind("unavailable", onDisconnected)
@@ -342,14 +346,9 @@ export default function ChatRoomPage() {
             </p>
           </div>
         </Link>
-        <button
-          aria-label="Voice call"
-          onClick={() => setDemoCall("voice")}
-          title="Voice call demo"
-          className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-primary"
-        >
-          <Phone className="size-5" />
-        </button>
+        {!conversation.isGroup && conversation.members?.find((member) => member.id !== String(user.id)) && (
+          <VoiceCall channel={realtimeChannel} user={{ id: user.id, name: user.name }} peer={conversation.members.find((member) => member.id !== String(user.id))!} />
+        )}
         <button
           aria-label="Video call"
           onClick={() => setDemoCall("video")}
@@ -527,8 +526,8 @@ export default function ChatRoomPage() {
           <button onClick={() => setDemoCall(null)} aria-label="Close call demo" className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"><X className="size-5" /></button>
           <UserAvatar src={conversation.avatar} name={conversation.name} size="xl" className="rounded-full ring-4 ring-white/15" />
           <h2 className="mt-5 text-2xl font-bold">{conversation.name}</h2>
-          <p className="mt-1 text-sm text-white/65">{demoCall === "video" ? "Video call demo" : "Voice call demo"}</p>
-          <div className="mt-8 flex size-16 items-center justify-center rounded-full bg-white/10">{demoCall === "video" ? <Video className="size-7" /> : <Phone className="size-7" />}</div>
+          <p className="mt-1 text-sm text-white/65">Video call demo</p>
+          <div className="mt-8 flex size-16 items-center justify-center rounded-full bg-white/10"><Video className="size-7" /></div>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">Calling UI is ready. Live connections will be enabled when WebRTC signalling is added.</p>
           <button onClick={() => setDemoCall(null)} className="mt-8 inline-flex h-14 items-center gap-2 rounded-full bg-red-500 px-7 font-semibold text-white shadow-lg shadow-red-500/25"><Phone className="size-5 rotate-[135deg]" /> End call</button>
         </div>
