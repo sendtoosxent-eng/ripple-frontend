@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Mic, MicOff, Phone, Volume2 } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
 
@@ -259,8 +260,8 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
         <Phone className="size-5" />
       </button>
 
-      {phase !== "idle" && (
-        <div className="fixed inset-0 z-[100] overflow-hidden bg-[#071b14] text-center text-white">
+      {phase !== "idle" && typeof document !== "undefined" && createPortal((
+        <div className="fixed inset-0 z-[9999] overflow-hidden bg-[#071b14] text-center text-white">
           <audio ref={remoteAudioRef} autoPlay playsInline />
           <div className="absolute inset-0 scale-110 bg-cover bg-center opacity-25 blur-2xl" style={{ backgroundImage: `url(${peer.avatar})` }} />
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-[#071b14]/55 to-[#03100c]" />
@@ -286,7 +287,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
           )}
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   )
 }
