@@ -9,6 +9,7 @@ import { getEcho } from "@/lib/echo"
 import { UserAvatar } from "@/components/user-avatar"
 import { api } from "@/lib/api"
 import { normalizePage } from "@/lib/pagination"
+import { startCallTone } from "@/lib/call-sounds"
 
 type IncomingCall = {
   actor_name?: string
@@ -63,7 +64,8 @@ export function IncomingCallListener() {
   useEffect(() => {
     if (!call) return
     const timer = window.setTimeout(() => setCall(null), 30_000)
-    return () => window.clearTimeout(timer)
+    const stopTone = startCallTone("incoming")
+    return () => { window.clearTimeout(timer); stopTone() }
   }, [call])
 
   if (!call || typeof document === "undefined") return null

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Mic, MicOff, Phone, Volume2 } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
+import { startCallTone } from "@/lib/call-sounds"
 
 type CallPhase = "idle" | "incoming" | "ringing" | "connecting" | "connected" | "failed"
 
@@ -242,6 +243,11 @@ export function VoiceCall({ channel, user, peer, onLog, onNotify }: Props) {
     if (phase !== "connected") return
     const timer = window.setInterval(() => setSeconds((value) => { secondsRef.current = value + 1; return value + 1 }), 1000)
     return () => window.clearInterval(timer)
+  }, [phase])
+
+  useEffect(() => {
+    if (phase !== "ringing" && phase !== "incoming") return
+    return startCallTone(phase === "incoming" ? "incoming" : "ringback")
   }, [phase])
 
   useEffect(() => () => {
