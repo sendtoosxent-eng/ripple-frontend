@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     google: 'QlCx2kf4SH_XJoEhfrCEaMQqHLbaEfepaUpdVppx9S8',
   },
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, title: 'Chatta', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'Ripple', statusBarStyle: 'default' },
   formatDetection: { telephone: false },
 }
 
@@ -52,7 +52,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <SplashScreen />
-            <PwaProvider />
+            <PwaProvider deployment={process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || 'production'} />
             {children}
           </AuthProvider>
         </ThemeProvider>
