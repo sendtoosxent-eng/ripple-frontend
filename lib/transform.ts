@@ -18,10 +18,12 @@ type ApiMessage = {
   id: number
   conversation_id: number
   sender_id: number
-  type: "text" | "image" | "voice"
+  type: "text" | "image" | "voice" | "call"
   text: string | null
   media_url: string | null
   voice_duration: string | null
+  call_status?: "missed" | "declined" | "completed" | null
+  call_duration?: number | null
   waveform: number[] | null
   width: number | null
   height: number | null
@@ -93,6 +95,9 @@ export function toUiMessage(m: ApiMessage, myId: number): Message {
   if (m.type === "voice") {
     return { ...base, type: "voice", duration: m.voice_duration || "0:00", waveform: m.waveform || Array.from({ length: 28 }, () => 0.5), src: m.media_url || undefined }
   }
+  if (m.type === "call") {
+    return { ...base, type: "call", callStatus: m.call_status || "missed", callDuration: m.call_duration || 0 }
+  }
   return { ...base, type: "text", text: m.text || "" }
 }
 
@@ -108,7 +113,9 @@ export function toUiConversation(c: ApiConversation, myId: number): Conversation
       ? latest.text || ""
       : latest.type === "image"
         ? "Photo"
-        : "Voice message"
+        : latest.type === "voice"
+          ? "Voice message"
+          : latest.call_status === "missed" ? "Missed voice call" : "Voice call"
     : "No messages yet"
 
   return {

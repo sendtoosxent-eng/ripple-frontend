@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CornerUpLeft, MoreHorizontal } from "lucide-react"
+import { CornerUpLeft, MoreHorizontal, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing } from "lucide-react"
 import { VoiceNote } from "@/components/chat/voice-note"
 import { UserAvatar } from "@/components/user-avatar"
 import type { Message } from "@/lib/data"
@@ -57,6 +57,28 @@ export function MessageBubble({
       document.removeEventListener("keydown", escape)
     }
   }, [pickerOpen])
+
+  if (message.type === "call") {
+    const missed = message.callStatus === "missed"
+    const declined = message.callStatus === "declined"
+    const label = missed ? (mine ? "No answer" : "Missed voice call") : declined ? "Declined voice call" : mine ? "Outgoing voice call" : "Incoming voice call"
+    const minutes = Math.floor(message.callDuration / 60)
+    const seconds = message.callDuration % 60
+    const detail = message.callStatus === "completed" ? `${minutes}:${String(seconds).padStart(2, "0")}` : message.time
+    const Icon = missed ? PhoneMissed : mine ? PhoneOutgoing : PhoneIncoming
+    return (
+      <div className="flex justify-center py-1">
+        <div className="flex min-w-56 items-center gap-3 rounded-2xl border border-border/70 bg-card/90 px-4 py-3 shadow-sm backdrop-blur">
+          <span className={cn("flex size-10 items-center justify-center rounded-full", missed || declined ? "bg-red-500/10 text-red-500" : "bg-emerald-500/10 text-emerald-500")}><Icon className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className={cn("text-sm font-semibold", missed && !mine ? "text-red-500" : "text-foreground")}>{label}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
+          </div>
+          <Phone className="size-4 text-primary" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={menuRef} className="group/msg flex w-full flex-col">

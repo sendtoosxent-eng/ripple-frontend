@@ -239,6 +239,12 @@ export const api = {
     if (replyToId) form.append("reply_to_id", String(replyToId))
     return request(`/conversations/${conversationId}/messages`, { method: "POST", body: form })
   },
+
+  logVoiceCall: (conversationId: string, callStatus: "missed" | "declined" | "completed", callDuration = 0) =>
+    request(`/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ type: "call", call_status: callStatus, call_duration: callDuration }),
+    }),
 }
 
 export { API_URL, getToken }

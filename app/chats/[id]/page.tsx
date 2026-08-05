@@ -347,7 +347,7 @@ export default function ChatRoomPage() {
           </div>
         </Link>
         {!conversation.isGroup && conversation.members?.find((member) => member.id !== String(user.id)) && (
-          <VoiceCall channel={realtimeChannel} user={{ id: user.id, name: user.name }} peer={conversation.members.find((member) => member.id !== String(user.id))!} />
+          <VoiceCall channel={realtimeChannel} user={{ id: user.id, name: user.name }} peer={conversation.members.find((member) => member.id !== String(user.id))!} onLog={(status, duration) => api.logVoiceCall(params.id, status, duration).catch(() => {})} />
         )}
         <button
           aria-label="Video call"

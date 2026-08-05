@@ -35,8 +35,13 @@ export type VoiceMessage = MessageBase & {
   waveform: number[]
   src?: string
 }
+export type CallMessage = MessageBase & {
+  type: "call"
+  callStatus: "missed" | "declined" | "completed"
+  callDuration: number
+}
 
-export type Message = TextMessage | ImageMessage | VoiceMessage
+export type Message = TextMessage | ImageMessage | VoiceMessage | CallMessage
 
 export type Conversation = {
   id: string
@@ -47,7 +52,7 @@ export type Conversation = {
   online?: boolean
   lastMessage: string
   lastMessageFromMe?: boolean
-  lastMessageType?: "text" | "image" | "voice"
+  lastMessageType?: "text" | "image" | "voice" | "call"
   time: string
   unread: number
   muted?: boolean
