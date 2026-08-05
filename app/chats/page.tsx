@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Bell, BellOff, ImageIcon, Mic, PenSquare, Search } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
@@ -18,6 +18,8 @@ import { api } from "@/lib/api"
 import { toUiConversation } from "@/lib/transform"
 import { getEcho } from "@/lib/echo"
 import { playNotificationSound } from "@/lib/sound"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { mergeUnique, normalizePage } from "@/lib/pagination"
 
 function Preview({ c }: { c: Conversation }) {
   const icon =
@@ -43,6 +45,9 @@ export default function ChatsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [alertCount, setAlertCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -50,9 +55,13 @@ export default function ChatsPage() {
 
   useEffect(() => {
     if (!user) return
-    api
-      .getConversations()
-      .then((data) => setConversations(data.map((c: any) => toUiConversation(c, user.id))))
+    api.getConversations(1)
+      .then((data) => {
+        const result = normalizePage<any>(data)
+        setConversations(result.items.map((c) => toUiConversation(c, user.id)))
+        setPage(result.page)
+        setHasMore(result.hasMore)
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load chats"))
       .finally(() => setLoading(false))
   }, [user])
@@ -61,7 +70,7 @@ export default function ChatsPage() {
     if (!user) return
     const refreshAlerts = () => {
       Promise.all([api.getFriendRequests(), api.getUnreadNotificationCount()])
-        .then(([requests, notifications]) => setAlertCount(requests.length + Number(notifications.count || 0)))
+        .then(([requests, notifications]) => setAlertCount(normalizePage(requests).items.length + Number(notifications.count || 0)))
         .catch(() => {})
     }
     const onVisible = () => document.visibilityState === "visible" && refreshAlerts()
@@ -73,6 +82,18 @@ export default function ChatsPage() {
       document.removeEventListener("visibilitychange", onVisible)
     }
   }, [user])
+
+  const loadMore = useCallback(async () => {
+    if (!user || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const result = normalizePage<any>(await api.getConversations(page + 1), page + 1)
+      const incoming = result.items.map((c) => toUiConversation(c, user.id))
+      setConversations((current) => mergeUnique(current, incoming, (item) => item.id))
+      setPage(result.page)
+      setHasMore(result.hasMore)
+    } finally { setLoadingMore(false) }
+  }, [hasMore, loadingMore, page, user])
 
   // Subscribe to every conversation's channel so the list updates live —
   // new last message, bumped to top, unread count, and a notification chime.
@@ -220,6 +241,7 @@ export default function ChatsPage() {
                   : `No conversations found for "${query}".`}
               </li>
             )}
+            {!query && <li><InfiniteScrollTrigger hasMore={hasMore} loading={loadingMore} onLoadMore={loadMore} /></li>}
           </ul>
         )}
 

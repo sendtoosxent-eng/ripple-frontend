@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Check, Heart, MessageCircle, MessageSquare, Repeat2, Rss, UserPlus, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
@@ -11,6 +11,8 @@ import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { getEcho } from "@/lib/echo"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { mergeUnique, normalizePage } from "@/lib/pagination"
 
 type FriendRequestItem = {
   id: number
@@ -92,19 +94,53 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [notificationPage, setNotificationPage] = useState(1)
+  const [requestPage, setRequestPage] = useState(1)
+  const [hasMoreNotifications, setHasMoreNotifications] = useState(false)
+  const [hasMoreRequests, setHasMoreRequests] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
   }, [authLoading, user, router])
 
   function refresh() {
-    Promise.all([api.getFriendRequests(), api.getNotifications()])
+    Promise.all([api.getFriendRequests(1), api.getNotifications(1)])
       .then(([reqs, notifs]) => {
-        setRequests(reqs)
-        setNotifications(notifs)
+        const requestResult = normalizePage<FriendRequestItem>(reqs)
+        const notificationResult = normalizePage<NotificationItem>(notifs)
+        setRequests(requestResult.items)
+        setNotifications(notificationResult.items)
+        setRequestPage(requestResult.page)
+        setNotificationPage(notificationResult.page)
+        setHasMoreRequests(requestResult.hasMore)
+        setHasMoreNotifications(notificationResult.hasMore)
       })
       .finally(() => setLoading(false))
   }
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || (!hasMoreRequests && !hasMoreNotifications)) return
+    setLoadingMore(true)
+    try {
+      const [reqs, notifs] = await Promise.all([
+        hasMoreRequests ? api.getFriendRequests(requestPage + 1) : Promise.resolve([]),
+        hasMoreNotifications ? api.getNotifications(notificationPage + 1) : Promise.resolve([]),
+      ])
+      if (hasMoreRequests) {
+        const result = normalizePage<FriendRequestItem>(reqs, requestPage + 1)
+        setRequests((current) => mergeUnique(current, result.items, (item) => item.id))
+        setRequestPage(result.page)
+        setHasMoreRequests(result.hasMore)
+      }
+      if (hasMoreNotifications) {
+        const result = normalizePage<NotificationItem>(notifs, notificationPage + 1)
+        setNotifications((current) => mergeUnique(current, result.items, (item) => item.id))
+        setNotificationPage(result.page)
+        setHasMoreNotifications(result.hasMore)
+      }
+    } finally { setLoadingMore(false) }
+  }, [hasMoreNotifications, hasMoreRequests, loadingMore, notificationPage, requestPage])
 
   useEffect(() => {
     if (!user) return
@@ -208,6 +244,7 @@ export default function NotificationsPage() {
                 Nothing here yet.
               </div>
             )}
+            <InfiniteScrollTrigger hasMore={hasMoreRequests || hasMoreNotifications} loading={loadingMore} onLoadMore={loadMore} />
           </>
         )}
       </div>

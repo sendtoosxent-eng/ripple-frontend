@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
@@ -11,6 +11,8 @@ import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { normalizePage } from "@/lib/pagination"
 
 type StatusGroup = {
   user: { id: number; name: string; username: string; avatar_url: string | null }
@@ -23,6 +25,9 @@ export default function StatusFeedPage() {
   const { user, loading: authLoading } = useAuth()
   const [groups, setGroups] = useState<StatusGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -31,10 +36,37 @@ export default function StatusFeedPage() {
   useEffect(() => {
     if (!user) return
     api
-      .getStatuses()
-      .then(setGroups)
+      .getStatuses(1)
+      .then((response) => {
+        const result = normalizePage<StatusGroup>(response)
+        setGroups(result.items)
+        setPage(result.page)
+        setHasMore(result.hasMore)
+      })
       .finally(() => setLoading(false))
   }, [user])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const result = normalizePage<StatusGroup>(await api.getStatuses(page + 1), page + 1)
+      setGroups((current) => {
+        const next = [...current]
+        for (const incoming of result.items) {
+          const index = next.findIndex((group) => group.user.id === incoming.user.id)
+          if (index === -1) next.push(incoming)
+          else {
+            const known = new Set(next[index].statuses.map((status) => status.id))
+            next[index] = { ...incoming, statuses: [...next[index].statuses, ...incoming.statuses.filter((status) => !known.has(status.id))] }
+          }
+        }
+        return next
+      })
+      setPage(result.page)
+      setHasMore(result.hasMore)
+    } finally { setLoadingMore(false) }
+  }, [hasMore, loadingMore, page])
 
   if (authLoading || !user) return null
 
@@ -101,6 +133,7 @@ export default function StatusFeedPage() {
             )}
           </ul>
         )}
+        <InfiniteScrollTrigger hasMore={hasMore} loading={loadingMore} onLoadMore={loadMore} />
 
         <Link
           href="/status/new"

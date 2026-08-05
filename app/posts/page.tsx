@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Bell, Heart, ImageIcon, MessageSquare, Repeat2, Send, Trash2, X } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { BottomNav } from "@/components/bottom-nav"
@@ -12,6 +12,8 @@ import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { getEcho } from "@/lib/echo"
 import { cn } from "@/lib/utils"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { mergeUnique, normalizePage } from "@/lib/pagination"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ListLoading } from "@/components/list-loading"
 
@@ -59,6 +61,10 @@ export default function PostsPage() {
   const [commentDraft, setCommentDraft] = useState("")
   const [pendingDelete, setPendingDelete] = useState<PostItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [commentPages, setCommentPages] = useState<Record<number, { page: number; hasMore: boolean; loading: boolean }>>({})
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -68,11 +74,27 @@ export default function PostsPage() {
   useEffect(() => {
     if (!user) return
     api
-      .getPosts()
-      .then((res) => setPosts(res.data))
+      .getPosts(1)
+      .then((res) => {
+        const result = normalizePage<PostItem>(res)
+        setPosts(result.items)
+        setPage(result.page)
+        setHasMore(result.hasMore)
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load posts"))
       .finally(() => setLoading(false))
   }, [user])
+
+  const loadMorePosts = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const result = normalizePage<PostItem>(await api.getPosts(page + 1), page + 1)
+      setPosts((current) => mergeUnique(current, result.items, (item) => item.id))
+      setPage(result.page)
+      setHasMore(result.hasMore)
+    } finally { setLoadingMore(false) }
+  }, [hasMore, loadingMore, page])
 
   // Live: new posts from anyone appear instantly at the top, no refresh needed
   useEffect(() => {
@@ -158,8 +180,22 @@ export default function PostsPage() {
     }
     setOpenComments(post.id)
     if (!comments[post.id]) {
-      const list = await api.getPostComments(post.id)
-      setComments((c) => ({ ...c, [post.id]: list }))
+      const result = normalizePage<CommentItem>(await api.getPostComments(post.id, 1))
+      setComments((c) => ({ ...c, [post.id]: result.items }))
+      setCommentPages((current) => ({ ...current, [post.id]: { page: result.page, hasMore: result.hasMore, loading: false } }))
+    }
+  }
+
+  async function loadMoreComments(postId: number) {
+    const state = commentPages[postId]
+    if (!state?.hasMore || state.loading) return
+    setCommentPages((current) => ({ ...current, [postId]: { ...state, loading: true } }))
+    try {
+      const result = normalizePage<CommentItem>(await api.getPostComments(postId, state.page + 1), state.page + 1)
+      setComments((current) => ({ ...current, [postId]: mergeUnique(current[postId] || [], result.items, (item) => item.id) }))
+      setCommentPages((current) => ({ ...current, [postId]: { page: result.page, hasMore: result.hasMore, loading: false } }))
+    } catch {
+      setCommentPages((current) => ({ ...current, [postId]: { ...state, loading: false } }))
     }
   }
 
@@ -345,6 +381,11 @@ export default function PostsPage() {
                             </div>
                           </div>
                         ))}
+                        {commentPages[post.id]?.hasMore && (
+                          <button type="button" onClick={() => loadMoreComments(post.id)} disabled={commentPages[post.id]?.loading} className="w-full py-1 text-xs font-semibold text-primary disabled:opacity-60">
+                            {commentPages[post.id]?.loading ? "Loading…" : "Load more comments"}
+                          </button>
+                        )}
                         <div className="flex items-center gap-2">
                           <UserAvatar src={user.avatar_url || "/avatars/you.png"} name={user.name} size="sm" />
                           <input
@@ -370,6 +411,7 @@ export default function PostsPage() {
             ))}
           </ul>
         )}
+        <InfiniteScrollTrigger hasMore={hasMore} loading={loadingMore} onLoadMore={loadMorePosts} />
       </div>
       <ConfirmDialog
         open={pendingDelete !== null}

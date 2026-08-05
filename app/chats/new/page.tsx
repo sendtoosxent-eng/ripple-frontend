@@ -2,12 +2,14 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ArrowLeft, ChevronRight, MessageCircle, Search, UserPlus, Users } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { mergeUnique, normalizePage } from "@/lib/pagination"
 
 type Friend = { id: number; name: string; username: string; avatar: string | null; avatar_url: string | null; online: boolean }
 
@@ -20,6 +22,9 @@ export default function NewChatPage() {
   const [starting, setStarting] = useState<number | null>(null)
   const [friendIds, setFriendIds] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -27,14 +32,32 @@ export default function NewChatPage() {
 
   useEffect(() => {
     if (!user) return
-    Promise.all([api.getUsers(), api.getFriends()])
+    let active = true
+    setLoading(true)
+    const timer = window.setTimeout(() => Promise.all([api.getUsers(1, query), api.getFriends(1)])
       .then(([people, friends]) => {
-        setUsers(people)
-        setFriendIds(new Set(friends.map((friend: Friend) => friend.id)))
+        if (!active) return
+        const peopleResult = normalizePage<Friend>(people)
+        setUsers(peopleResult.items)
+        setPage(peopleResult.page)
+        setHasMore(peopleResult.hasMore)
+        setFriendIds(new Set(normalizePage<Friend>(friends).items.map((friend) => friend.id)))
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "People could not be loaded."))
-      .finally(() => setLoading(false))
-  }, [user])
+      .catch((err) => { if (active) setError(err instanceof Error ? err.message : "People could not be loaded.") })
+      .finally(() => { if (active) setLoading(false) }), 250)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [query, user])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const result = normalizePage<Friend>(await api.getUsers(page + 1, query), page + 1)
+      setUsers((current) => mergeUnique(current, result.items, (item) => item.id))
+      setPage(result.page)
+      setHasMore(result.hasMore)
+    } finally { setLoadingMore(false) }
+  }, [hasMore, loadingMore, page, query])
 
   const filtered = users.filter(
     (u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.username.toLowerCase().includes(query.toLowerCase()),
@@ -125,6 +148,7 @@ export default function NewChatPage() {
             ))}
           </ul>
         )}
+        <InfiniteScrollTrigger hasMore={hasMore} loading={loadingMore} onLoadMore={loadMore} />
       </div>
     </AppShell>
   )

@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowLeft, Camera, Check, Search, Users } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { UserAvatar } from "@/components/user-avatar"
 import { useAuth } from "@/lib/auth-context"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { InfiniteScrollTrigger } from "@/components/infinite-scroll-trigger"
+import { mergeUnique, normalizePage } from "@/lib/pagination"
 
 type Friend = { id: number; name: string; username: string; avatar_url: string | null; online: boolean }
 
@@ -25,6 +27,9 @@ export default function NewGroupPage() {
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/")
@@ -32,11 +37,30 @@ export default function NewGroupPage() {
 
   useEffect(() => {
     if (!user) return
-    api
-      .getUsers()
-      .then(setUsers)
-      .finally(() => setLoading(false))
-  }, [user])
+    let active = true
+    setLoading(true)
+    const timer = window.setTimeout(() => api.getUsers(1, query)
+      .then((response) => {
+        if (!active) return
+        const result = normalizePage<Friend>(response)
+        setUsers(result.items)
+        setPage(result.page)
+        setHasMore(result.hasMore)
+      })
+      .finally(() => { if (active) setLoading(false) }), 250)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [query, user])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const result = normalizePage<Friend>(await api.getUsers(page + 1, query), page + 1)
+      setUsers((current) => mergeUnique(current, result.items, (item) => item.id))
+      setPage(result.page)
+      setHasMore(result.hasMore)
+    } finally { setLoadingMore(false) }
+  }, [hasMore, loadingMore, page, query])
 
   const filtered = users.filter(
     (u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.username.toLowerCase().includes(query.toLowerCase()),
@@ -176,6 +200,7 @@ export default function NewGroupPage() {
             })}
           </ul>
         )}
+        <InfiniteScrollTrigger hasMore={hasMore} loading={loadingMore} onLoadMore={loadMore} />
       </div>
 
       <div className="shrink-0 border-t border-border px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

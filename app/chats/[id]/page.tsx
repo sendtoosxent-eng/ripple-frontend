@@ -18,6 +18,7 @@ import { playNotificationSound } from "@/lib/sound"
 import { getWallpaper, getWallpaperClassName } from "@/lib/wallpaper"
 import { cn } from "@/lib/utils"
 import { ListLoading } from "@/components/list-loading"
+import { normalizePage } from "@/lib/pagination"
 
 export default function ChatRoomPage() {
   const params = useParams<{ id: string }>()
@@ -50,6 +51,7 @@ export default function ChatRoomPage() {
   const channelRef = useRef<any>(null)
   const typingTimeoutRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({})
   const nearBottomRef = useRef(true)
+  const loadingOlderRef = useRef(false)
 
   useEffect(() => {
     setWallpaperClass(getWallpaperClassName(getWallpaper()))
@@ -281,16 +283,24 @@ export default function ChatRoomPage() {
   async function loadOlderMessages() {
     const oldest = messages[0]
     const scroller = scrollRef.current
-    if (!oldest || !scroller || !user || loadingOlder) return
+    if (!oldest || !scroller || !user || loadingOlderRef.current) return
+    loadingOlderRef.current = true
     setLoadingOlder(true)
     const previousHeight = scroller.scrollHeight
+    const previousTop = scroller.scrollTop
     try {
       const result = await api.getOlderMessages(params.id, oldest.id)
-      const older = result.data.map((message: any) => toUiMessage(message, user.id))
-      setMessages((current) => [...older, ...current])
-      setHasMoreMessages(Boolean(result.has_more))
-      window.requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight - previousHeight })
-    } finally { setLoadingOlder(false) }
+      const page = normalizePage<any>(result)
+      const older = page.items.map((message) => toUiMessage(message, user.id))
+      setMessages((current) => {
+        const known = new Set(current.map((message) => message.id))
+        return [...older.filter((message) => !known.has(message.id)), ...current]
+      })
+      setHasMoreMessages(page.hasMore)
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        scroller.scrollTop = previousTop + (scroller.scrollHeight - previousHeight)
+      }))
+    } finally { loadingOlderRef.current = false; setLoadingOlder(false) }
   }
 
   return (
@@ -366,6 +376,7 @@ export default function ChatRoomPage() {
         onScroll={(event) => {
           const element = event.currentTarget
           nearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120
+          if (element.scrollTop < 100 && hasMoreMessages && !loadingOlder) void loadOlderMessages()
         }}
         onLoadCapture={() => {
           if (nearBottomRef.current) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" })

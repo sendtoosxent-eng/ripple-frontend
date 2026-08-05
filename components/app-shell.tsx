@@ -14,10 +14,10 @@ export function AppShell({
   className?: string
 }) {
   return (
-    <div className="flex min-h-dvh justify-center bg-muted/40 sm:p-4 md:p-8">
+    <div className="flex h-dvh overflow-hidden justify-center bg-muted/40 sm:p-4 md:p-8">
       <div
         className={cn(
-          "relative flex min-h-dvh w-full max-w-md flex-col overflow-hidden bg-background sm:min-h-0 sm:h-[min(900px,calc(100dvh-2rem))] sm:rounded-[2rem] sm:border sm:border-border sm:shadow-2xl sm:shadow-primary/5",
+          "relative flex h-dvh min-h-0 w-full max-w-md flex-col overflow-hidden bg-background sm:h-[min(900px,calc(100dvh-2rem))] sm:rounded-[2rem] sm:border sm:border-border sm:shadow-2xl sm:shadow-primary/5",
           className,
         )}
       >

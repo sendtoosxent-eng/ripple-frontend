@@ -3,6 +3,11 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
+function paged(path: string, page = 1, extra: Record<string, string> = {}) {
+  const params = new URLSearchParams({ page: String(page), ...extra })
+  return request(`${path}?${params.toString()}`)
+}
+
 function getToken() {
   if (typeof window === "undefined") return null
   return localStorage.getItem("token")
@@ -95,9 +100,9 @@ export const api = {
 
   me: () => request("/me"),
 
-  getConversations: () => request("/conversations"),
+  getConversations: (page = 1) => paged("/conversations", page),
 
-  getUsers: () => request("/users"),
+  getUsers: (page = 1, search = "") => paged("/users", page, search ? { search } : {}),
 
   getUser: (id: number | string) => request(`/users/${id}`),
 
@@ -110,7 +115,7 @@ export const api = {
 
   leaveConversation: (id: string) => request(`/conversations/${id}/leave`, { method: "POST" }),
 
-  getStatuses: () => request("/statuses"),
+  getStatuses: (page = 1) => paged("/statuses", page),
 
   postTextStatus: (text: string, background: string) =>
     request("/statuses", { method: "POST", body: JSON.stringify({ type: "text", text, background }) }),
@@ -134,16 +139,16 @@ export const api = {
   repostStatus: (statusId: number) => request(`/statuses/${statusId}/repost`, { method: "POST" }),
 
   // Friends
-  getFriendRequests: () => request("/friend-requests"),
+  getFriendRequests: (page = 1) => paged("/friend-requests", page),
   sendFriendRequest: (receiverId: number) =>
     request("/friend-requests", { method: "POST", body: JSON.stringify({ receiver_id: receiverId }) }),
   acceptFriendRequest: (id: number) => request(`/friend-requests/${id}/accept`, { method: "POST" }),
   rejectFriendRequest: (id: number) => request(`/friend-requests/${id}/reject`, { method: "POST" }),
-  getFriends: () => request("/friends"),
+  getFriends: (page = 1) => paged("/friends", page),
   getFriendStatus: (userId: number | string) => request(`/friend-status/${userId}`),
 
   // Posts
-  getPosts: () => request("/posts"),
+  getPosts: (page = 1) => paged("/posts", page),
   createPost: (text: string, image?: File | null) => {
     const form = new FormData()
     if (text) form.append("text", text)
@@ -163,13 +168,13 @@ export const api = {
   unblockUser: (userId: number | string) => request(`/users/${userId}/unblock`, { method: "POST" }),
 
   // Post comments & reposts
-  getPostComments: (postId: number) => request(`/posts/${postId}/comments`),
+  getPostComments: (postId: number, page = 1) => paged(`/posts/${postId}/comments`, page),
   addPostComment: (postId: number, text: string) =>
     request(`/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ text }) }),
   togglePostRepost: (postId: number) => request(`/posts/${postId}/repost`, { method: "POST" }),
 
   // Notifications
-  getNotifications: () => request("/notifications"),
+  getNotifications: (page = 1) => paged("/notifications", page),
   getUnreadNotificationCount: () => request("/notifications/unread-count"),
   getNotificationPreferences: () => request("/notification-preferences"),
   updateNotificationPreferences: (preferences: Partial<{ push: boolean; sound: boolean; vibrate: boolean; messages: boolean; social: boolean; reminders: boolean }>) =>
