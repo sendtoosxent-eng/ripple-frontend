@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
+import { saveInstallPrompt, type InstallPrompt } from "@/lib/pwa-install"
 
 export function PwaProvider({ deployment }: { deployment: string }) {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null)
@@ -8,6 +9,13 @@ export function PwaProvider({ deployment }: { deployment: string }) {
     if (!("serviceWorker" in navigator) || process.env.NODE_ENV !== "production") return
 
     let refreshing = false
+    const captureInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      saveInstallPrompt(event as InstallPrompt)
+    }
+    const installed = () => saveInstallPrompt(null)
+    window.addEventListener("beforeinstallprompt", captureInstallPrompt)
+    window.addEventListener("appinstalled", installed)
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (refreshing) return
       refreshing = true
@@ -27,6 +35,11 @@ export function PwaProvider({ deployment }: { deployment: string }) {
 
       void registration.update()
     }).catch(() => {})
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", captureInstallPrompt)
+      window.removeEventListener("appinstalled", installed)
+    }
   }, [deployment])
 
   if (!waitingWorker) return null

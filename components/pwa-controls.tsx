@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react"
 import { BellRing, Download, Smartphone } from "lucide-react"
 import { api } from "@/lib/api"
-
-type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> }
+import { getInstallPrompt, isStandalone, saveInstallPrompt, subscribeToInstallPrompt, type InstallPrompt } from "@/lib/pwa-install"
 
 function applicationKey(value: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - value.length % 4) % 4)
@@ -15,23 +14,33 @@ function applicationKey(value: string): Uint8Array<ArrayBuffer> {
 }
 
 export function PwaControls() {
-  const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null)
+  const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(() => getInstallPrompt())
+  const [installed, setInstalled] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    const capture = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt) }
-    window.addEventListener("beforeinstallprompt", capture)
+    const sync = () => setInstallPrompt(getInstallPrompt())
+    const syncInstalled = () => { setInstalled(isStandalone()); sync() }
+    setInstalled(isStandalone())
+    const unsubscribe = subscribeToInstallPrompt(sync)
+    window.addEventListener("appinstalled", syncInstalled)
     if ("serviceWorker" in navigator && "PushManager" in window) navigator.serviceWorker.ready.then((registration) => registration.pushManager.getSubscription()).then((subscription) => setSubscribed(Boolean(subscription))).catch(() => {})
-    return () => window.removeEventListener("beforeinstallprompt", capture)
+    return () => { unsubscribe(); window.removeEventListener("appinstalled", syncInstalled) }
   }, [])
 
   async function install() {
-    if (!installPrompt) return
+    if (installed) return
+    if (!installPrompt) {
+      setMessage("To install Ripple, open your browser menu and choose Install app or Add to Home screen.")
+      return
+    }
     await installPrompt.prompt()
-    await installPrompt.userChoice
-    setInstallPrompt(null)
+    const choice = await installPrompt.userChoice
+    saveInstallPrompt(null)
+    if (choice.outcome === "accepted") setMessage("Ripple is being installed.")
+    else setMessage("Installation was cancelled. You can try again from your browser menu.")
   }
 
   async function togglePush() {
@@ -62,7 +71,7 @@ export function PwaControls() {
       <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground/70"><Smartphone className="size-4.5" /></span>
         <div className="min-w-0 flex-1"><p className="text-sm font-medium text-foreground">Install Ripple</p><p className="text-xs text-muted-foreground">Add Ripple to your home screen.</p></div>
-        <button onClick={install} disabled={!installPrompt} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold disabled:opacity-50"><Download className="size-3.5" /> Install</button>
+        <button onClick={install} disabled={installed} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold disabled:opacity-50"><Download className="size-3.5" /> {installed ? "Installed" : installPrompt ? "Install" : "Install help"}</button>
       </div>
       <div className="mx-4 h-px bg-border" />
       <div className="flex items-center gap-3 px-4 py-3.5">
