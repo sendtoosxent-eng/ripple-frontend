@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   description:
     'A clean, modern, mobile-first messaging app with voice notes, photos, groups, and dark mode.',
   applicationName: 'Chatta',
+  verification: {
+    google: 'QlCx2kf4SH_XJoEhfrCEaMQqHLbaEfepaUpdVppx9S8',
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Chatta', statusBarStyle: 'default' },
   formatDetection: { telephone: false },
