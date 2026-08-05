@@ -26,7 +26,19 @@ export function PwaControls() {
     setInstalled(isStandalone())
     const unsubscribe = subscribeToInstallPrompt(sync)
     window.addEventListener("appinstalled", syncInstalled)
-    if ("serviceWorker" in navigator && "PushManager" in window) navigator.serviceWorker.ready.then((registration) => registration.pushManager.getSubscription()).then((subscription) => setSubscribed(Boolean(subscription))).catch(() => {})
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker.ready
+        .then((registration) => registration.pushManager.getSubscription())
+        .then(async (subscription) => {
+          setSubscribed(Boolean(subscription))
+          if (!subscription) return
+          const json = subscription.toJSON()
+          if (json.endpoint && json.keys?.p256dh && json.keys.auth) {
+            await api.savePushSubscription({ endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } })
+          }
+        })
+        .catch(() => {})
+    }
     return () => { unsubscribe(); window.removeEventListener("appinstalled", syncInstalled) }
   }, [])
 

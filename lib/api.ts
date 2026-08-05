@@ -1,7 +1,10 @@
 // lib/api.ts
 // Central place for every call to the Laravel backend.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL
+const API_URL = !configuredApiUrl || configuredApiUrl.includes("edlink.aureusafrica.online")
+  ? "https://ripple-backend-cljv.onrender.com/api"
+  : configuredApiUrl.replace(/\/$/, "")
 
 function paged(path: string, page = 1, extra: Record<string, string> = {}) {
   const params = new URLSearchParams({ page: String(page), ...extra })
