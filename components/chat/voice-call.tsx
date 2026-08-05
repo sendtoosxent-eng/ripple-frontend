@@ -259,7 +259,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
       </button>
 
       {phase !== "idle" && (
-        <div className="absolute inset-0 z-[60] overflow-hidden bg-[#071b14] text-center text-white">
+        <div className="fixed inset-0 z-[100] overflow-hidden bg-[#071b14] text-center text-white">
           <audio ref={remoteAudioRef} autoPlay playsInline />
           <div className="absolute inset-0 scale-110 bg-cover bg-center opacity-25 blur-2xl" style={{ backgroundImage: `url(${peer.avatar})` }} />
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-[#071b14]/55 to-[#03100c]" />
