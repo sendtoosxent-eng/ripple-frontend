@@ -142,7 +142,7 @@ export default function RegisterPage() {
           label="Email"
           icon={<Mail className="size-5" />}
           type="email"
-          placeholder="osxent@ripple.com"
+          placeholder="you@example.com"
           required
           autoComplete="email"
           value={email}

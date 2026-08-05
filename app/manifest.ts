@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ripple — Messaging, made friendly",
-    short_name: "Ripple",
+    name: "Chatta — Messaging, made friendly",
+    short_name: "Chatta",
     description: "Private messaging, voice notes, photos, groups, posts, and updates.",
     start_url: "/chats",
     scope: "/",

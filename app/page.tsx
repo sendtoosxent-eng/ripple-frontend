@@ -35,6 +35,9 @@ export default function LoginPage() {
           <p className="mt-2 text-pretty leading-relaxed text-muted-foreground">
             Sign in to keep the conversation going.
           </p>
+          <p className="mt-3 rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            Chatta is an independent messaging service. Sign in only with an account you created on this website.
+          </p>
         </div>
 
         <form
@@ -64,7 +67,7 @@ export default function LoginPage() {
                 type="email"
                 required
                 autoComplete="username"
-                placeholder="osxent@ripple.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
@@ -105,7 +108,7 @@ export default function LoginPage() {
               />
               Remember me
             </label>
-            <a href="mailto:support@ripple.com?subject=Password%20reset" className="text-sm font-medium text-primary hover:underline">Forgot password?</a>
+            <span className="text-sm text-muted-foreground" title="Password reset is not available yet">Password reset coming soon</span>
           </div>
 
           <button

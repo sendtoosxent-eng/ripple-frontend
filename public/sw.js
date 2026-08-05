@@ -1,4 +1,4 @@
-const CACHE = "ripple-shell-v1"
+const CACHE = "chatta-shell-v2"
 const SHELL = ["/", "/icon.svg", "/apple-icon.png"]
 self.addEventListener("install", (event) => { event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL))); self.skipWaiting() })
 self.addEventListener("activate", (event) => { event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))); self.clients.claim() })
@@ -8,7 +8,7 @@ self.addEventListener("fetch", (event) => {
 })
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {}
-  event.waitUntil(self.registration.showNotification(data.title || "Ripple", { body: data.body || "You have a new notification", icon: "/icon.svg", badge: "/icon.svg", tag: data.tag || data.url || "ripple-notification", data: { url: data.url || "/notifications" }, vibrate: [100, 50, 100] }))
+  event.waitUntil(self.registration.showNotification(data.title || "Chatta", { body: data.body || "You have a new notification", icon: "/icon.svg", badge: "/icon.svg", tag: data.tag || data.url || "chatta-notification", data: { url: data.url || "/notifications" }, vibrate: [100, 50, 100] }))
 })
 self.addEventListener("notificationclick", (event) => {
   event.notification.close()

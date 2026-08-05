@@ -190,7 +190,7 @@ export default function SettingsPage() {
           {loggingOut ? "Logging out..." : "Log out"}
         </button>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">Ripple · Version 1.0.0</p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">Chatta · Version 1.0.0</p>
       </div>
 
       <BottomNav />

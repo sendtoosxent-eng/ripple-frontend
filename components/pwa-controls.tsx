@@ -61,7 +61,7 @@ export function PwaControls() {
     <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="flex size-9 items-center justify-center rounded-full bg-muted text-foreground/70"><Smartphone className="size-4.5" /></span>
-        <div className="min-w-0 flex-1"><p className="text-sm font-medium text-foreground">Install Ripple</p><p className="text-xs text-muted-foreground">Add Ripple to your home screen.</p></div>
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium text-foreground">Install Chatta</p><p className="text-xs text-muted-foreground">Add Chatta to your home screen.</p></div>
         <button onClick={install} disabled={!installPrompt} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold disabled:opacity-50"><Download className="size-3.5" /> Install</button>
       </div>
       <div className="mx-4 h-px bg-border" />
