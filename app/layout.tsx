@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/lib/auth-context'
 import { SplashScreen } from '@/components/splash-screen'
 import { PwaProvider } from '@/components/pwa-provider'
+import { IncomingCallListener } from '@/components/incoming-call-listener'
 import './globals.css'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -53,6 +54,7 @@ export default function RootLayout({
           <AuthProvider>
             <SplashScreen />
             <PwaProvider deployment={process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || 'production'} />
+            <IncomingCallListener />
             {children}
           </AuthProvider>
         </ThemeProvider>

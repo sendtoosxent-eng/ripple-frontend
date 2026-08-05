@@ -240,11 +240,13 @@ export const api = {
     return request(`/conversations/${conversationId}/messages`, { method: "POST", body: form })
   },
 
-  logVoiceCall: (conversationId: string, callStatus: "missed" | "declined" | "completed", callDuration = 0) =>
-    request(`/conversations/${conversationId}/messages`, {
+  logVoiceCall: async (conversationId: string, callStatus: "missed" | "declined" | "completed", callDuration = 0) => {
+    const result = await request(`/conversations/${conversationId}/messages`, {
       method: "POST",
       body: JSON.stringify({ type: "call", call_status: callStatus, call_duration: callDuration }),
-    }),
+    })
+    return result?.message ?? result
+  },
 
   notifyIncomingCall: (conversationId: string) =>
     request(`/conversations/${conversationId}/calls/notify`, { method: "POST" }),

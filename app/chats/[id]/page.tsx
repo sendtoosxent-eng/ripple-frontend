@@ -118,7 +118,8 @@ export default function ChatRoomPage() {
     connection?.bind("unavailable", onDisconnected)
 
     channel.listen(".message.sent", (e: { message: any }) => {
-      setMessages((m) => [...m, toUiMessage(e.message, user.id)])
+      const incoming = toUiMessage(e.message, user.id)
+      setMessages((current) => current.some((message) => message.id === incoming.id) ? current : [...current, incoming])
       setTypingUsers({})
       setOtherRecording(false)
       if (e.message.sender_id !== user.id) playNotificationSound()
@@ -347,7 +348,7 @@ export default function ChatRoomPage() {
           </div>
         </Link>
         {!conversation.isGroup && conversation.members?.find((member) => member.id !== String(user.id)) && (
-          <VoiceCall channel={realtimeChannel} user={{ id: user.id, name: user.name }} peer={conversation.members.find((member) => member.id !== String(user.id))!} onLog={(status, duration) => api.logVoiceCall(params.id, status, duration).catch(() => {})} onNotify={() => api.notifyIncomingCall(params.id)} />
+          <VoiceCall channel={realtimeChannel} user={{ id: user.id, name: user.name }} peer={conversation.members.find((member) => member.id !== String(user.id))!} onLog={(status, duration) => api.logVoiceCall(params.id, status, duration).then((saved) => { const logged = toUiMessage(saved, user.id); setMessages((current) => current.some((message) => message.id === logged.id) ? current : [...current, logged]) }).catch(() => {})} onNotify={() => api.notifyIncomingCall(params.id)} />
         )}
         <button
           aria-label="Video call"
