@@ -7,11 +7,20 @@ import { Phone, PhoneIncoming } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { getEcho } from "@/lib/echo"
 import { UserAvatar } from "@/components/user-avatar"
+import { api } from "@/lib/api"
+import { normalizePage } from "@/lib/pagination"
 
 type IncomingCall = {
   actor_name?: string
   actor_avatar?: string | null
   conversation_id: number
+}
+
+type CallNotification = {
+  id: number
+  type: string
+  data: IncomingCall
+  created_at: string
 }
 
 export function IncomingCallListener() {
@@ -29,6 +38,26 @@ export function IncomingCallListener() {
     }
     channel.listen(".notification.created", receive)
     return () => channel.stopListening(".notification.created", receive)
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    let latestSeenId = 0
+
+    const poll = async () => {
+      try {
+        const result = normalizePage<CallNotification>(await api.getNotifications(1))
+        const newestId = Math.max(0, ...result.items.map((item) => item.id))
+        const incoming = result.items.find((item) => item.type === "incoming_call" && item.id > latestSeenId && Date.now() - new Date(item.created_at).getTime() < 35_000)
+        latestSeenId = Math.max(latestSeenId, newestId)
+        if (active && incoming) setCall(incoming.data)
+      } catch {}
+    }
+
+    void poll()
+    const timer = window.setInterval(poll, 3000)
+    return () => { active = false; window.clearInterval(timer) }
   }, [user])
 
   useEffect(() => {
