@@ -113,12 +113,13 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
 
   const startCall = async () => {
     setError("")
+    const nextCallId = crypto.randomUUID()
+    callerRef.current = true
+    callIdRef.current = nextCallId
+    moveTo("ringing")
     try {
+      if (!channel) throw new Error("Live calling is reconnecting. Please try again in a moment.")
       await getMicrophone()
-      const nextCallId = crypto.randomUUID()
-      callerRef.current = true
-      callIdRef.current = nextCallId
-      moveTo("ringing")
       send({ type: "invite", callId: nextCallId })
       ringTimerRef.current = setTimeout(() => {
         if (phaseRef.current !== "ringing" || loggedRef.current) return
@@ -254,7 +255,7 @@ export function VoiceCall({ channel, user, peer, onLog }: Props) {
 
   return (
     <>
-      <button aria-label="Voice call" onClick={startCall} disabled={!channel || phase !== "idle"} title="Voice call" className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-primary disabled:opacity-40">
+      <button aria-label="Voice call" onClick={startCall} disabled={phase !== "idle"} title="Voice call" className="inline-flex size-10 items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-primary disabled:opacity-40">
         <Phone className="size-5" />
       </button>
 
