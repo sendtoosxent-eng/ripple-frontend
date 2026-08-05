@@ -27,7 +27,7 @@ export function SplashScreen() {
       <div className="animate-pulse">
         <Logo showName={false} />
       </div>
-      <span className="text-lg font-bold tracking-tight text-foreground">Chatta</span>
+      <span className="text-lg font-bold tracking-tight text-foreground">Ripple</span>
       <span className="text-xs text-muted-foreground">Messaging, made friendly</span>
     </div>
   )

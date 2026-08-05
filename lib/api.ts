@@ -44,8 +44,8 @@ async function request(path: string, options: RequestInit = {}) {
 
   if (!res) {
     throw new Error(networkError instanceof Error && networkError.message
-      ? `Chatta could not reach the server. ${networkError.message}`
-      : "Chatta could not reach the server. Please check your connection and try again.")
+      ? `Ripple could not reach the server. ${networkError.message}`
+      : "Ripple could not reach the server. Please check your connection and try again.")
   }
 
   if (!res.ok) {

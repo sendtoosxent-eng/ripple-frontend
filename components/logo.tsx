@@ -18,7 +18,7 @@ export function Logo({
         </svg>
       </span>
       {showName && (
-        <span className="text-lg font-bold tracking-tight text-foreground">Chatta</span>
+        <span className="text-lg font-bold tracking-tight text-foreground">Ripple</span>
       )}
     </div>
   )

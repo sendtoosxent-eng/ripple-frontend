@@ -36,7 +36,7 @@ export default function LoginPage() {
             Sign in to keep the conversation going.
           </p>
           <p className="mt-3 rounded-xl border border-border bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Chatta is an independent messaging service. Sign in only with an account you created on this website.
+            Ripple is an independent messaging service. Sign in only with an account you created on this website.
           </p>
         </div>
 

@@ -21,10 +21,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://ripple-chat-six.vercel.app'),
-  title: 'Chatta — Messaging, made friendly',
+  title: 'Ripple — Messaging, made friendly',
   description:
     'A clean, modern, mobile-first messaging app with voice notes, photos, groups, and dark mode.',
-  applicationName: 'Chatta',
+  applicationName: 'Ripple',
   verification: {
     google: 'QlCx2kf4SH_XJoEhfrCEaMQqHLbaEfepaUpdVppx9S8',
   },
